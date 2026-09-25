@@ -272,9 +272,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
 
 [[package]]
+name = "coupon_common"
+version = "0.1.0"
+dependencies = [
+ "solana-program",
+]
+
+[[package]]
+name = "coupon_faucet"
+version = "0.1.0"
+dependencies = [
+ "coupon_common",
+ "solana-program",
+]
+
+[[package]]
+name = "coupon_market"
+version = "0.1.0"
+dependencies = [
+ "coupon_common",
+ "coupon_vault",
+ "solana-program",
+]
+
+[[package]]
 name = "coupon_vault"
 version = "0.1.0"
 dependencies = [
+ "coupon_common",
  "solana-program",
 ]
 

@@ -30,7 +30,7 @@ export default function FaucetPage() {
     const cm = v.markets[symbol];
     if (!cm) return;
     const k = v.vault.keys(cm.dep);
-    await v.run(`Claim ${FAUCET_X} test ${symbol}`, v.vault.faucet(v.owner, k.x, k.market), (sig) => ({ action: "faucet", symbol, sig, at: Date.now(), title: "Faucet paid", lines: [["Token", `Test ${symbol} · devnet`], ["Multiplier (mirrors mainnet)", cm.multiplier?.toFixed(9) ?? "…"], ["Received", `${units(FAUCET_X, 2)} ${symbol}`]] }));
+    await v.run(`Claim ${FAUCET_X} test ${symbol}`, v.vault.faucet(v.owner, k.x), (sig) => ({ action: "faucet", symbol, sig, at: Date.now(), title: "Faucet paid", lines: [["Token", `Test ${symbol} · devnet`], ["Multiplier (mirrors mainnet)", cm.multiplier?.toFixed(9) ?? "…"], ["Received", `${units(FAUCET_X, 2)} ${symbol}`]] }));
   };
 
   const tokens = [

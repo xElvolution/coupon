@@ -1,9 +1,10 @@
-// End to end check of every coupon_vault instruction through the same SDK the app uses.
+// End to end check of every instruction across coupon_vault, coupon_market and coupon_faucet, through the same SDK the app uses.
 // Runs as a test (asserts balances and error codes) on localnet, and as the devnet verification.
 // Usage: bun scripts/vault-verify.ts <rpc> <deployment.json> [SYMBOL]
 import { Connection, Keypair, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction, type TransactionInstruction } from "@solana/web3.js";
+import { ExtensionType, getMintLen, createInitializeMint2Instruction } from "@solana/spl-token";
 import fs from "fs";
-import { CouponVault, X_DECIMALS, USDC_DECIMALS, swapOut, couponClaim, shareValue, toRaw, fromRaw, explainError, type Deployment } from "../src/lib/vault/sdk";
+import { CouponVault, TOKEN_2022, X_DECIMALS, USDC_DECIMALS, swapOut, couponClaim, shareValue, toRaw, fromRaw, explainError, type Deployment } from "../src/lib/vault/sdk";
 
 const [rpc, depPath, symbol = "SPYx"] = process.argv.slice(2);
 const conn = new Connection(rpc, "confirmed");
@@ -26,9 +27,9 @@ const send = async (action: string, ixs: TransactionInstruction[], signer = user
   results.push({ action, sig });
   return sig;
 };
-const expectFail = async (action: string, ixs: TransactionInstruction[], code: number) => {
+const expectFail = async (action: string, ixs: TransactionInstruction[], code: number, signers: Keypair[] = [user]) => {
   try {
-    await sendAndConfirmTransaction(conn, new Transaction().add(...ixs), [user], { commitment: "confirmed" });
+    await sendAndConfirmTransaction(conn, new Transaction().add(...ixs), signers, { commitment: "confirmed" });
     ok(false, `${action} should fail with code ${code}`);
   } catch (e) {
     const s = String((e as Error).message) + JSON.stringify((e as { logs?: string[] }).logs ?? "");
@@ -49,13 +50,13 @@ console.log(`tester ${user.publicKey.toBase58()} on ${dep.cluster}, market ${sym
 let p0 = await pos();
 const lastDrip = await v.readDrip(conn, k.x, user.publicKey);
 if (lastDrip === null || Date.now() / 1000 - lastDrip > 3600) {
-  await send(`faucet ${symbol}`, v.faucet(user.publicKey, k.x, k.market));
+  await send(`faucet ${symbol}`, v.faucet(user.publicKey, k.x));
   const p1 = await pos();
   ok(p1.x - p0.x === toRaw(100, X_DECIMALS), "faucet paid 100 test " + symbol);
   await send("faucet USDC", v.faucet(user.publicKey, v.usdc));
   ok((await pos()).usdc - p1.usdc === toRaw(1000, USDC_DECIMALS), "faucet paid 1,000 test USDC");
 }
-await expectFail("faucet again (cooldown)", v.faucet(user.publicKey, k.x, k.market), 4);
+await expectFail("faucet again (cooldown)", v.faucet(user.publicKey, k.x), 4);
 
 p0 = await pos();
 await send(`split 50 ${symbol}`, v.split(user.publicKey, m, toRaw(50, X_DECIMALS)));
@@ -110,6 +111,18 @@ p1 = await pos();
 ok(p1.lp === lpExp, `received ${fromRaw(lpExp, 8)} LP`);
 await send("remove liquidity", v.removeLiquidity(user.publicKey, m, p1.lp, 1n, 1n));
 ok((await pos()).lp === 0n, "LP burned, reserves returned");
+
+// a fake coupon (mint not controlled by coupon_vault) must not get a pool
+const fakeD = Keypair.generate(), fakeLp = Keypair.generate();
+const space = getMintLen([]);
+const rent = await conn.getMinimumBalanceForRentExemption(space);
+await sendAndConfirmTransaction(conn, new Transaction().add(
+  SystemProgram.createAccount({ fromPubkey: admin.publicKey, newAccountPubkey: fakeD.publicKey, space, lamports: rent, programId: TOKEN_2022 }),
+  createInitializeMint2Instruction(fakeD.publicKey, X_DECIMALS, admin.publicKey, null, TOKEN_2022),
+  SystemProgram.createAccount({ fromPubkey: admin.publicKey, newAccountPubkey: fakeLp.publicKey, space, lamports: rent, programId: TOKEN_2022 }),
+  createInitializeMint2Instruction(fakeLp.publicKey, X_DECIMALS, v.pool(fakeD.publicKey), null, TOKEN_2022),
+), [admin, fakeD, fakeLp]);
+await expectFail("pool for a fake coupon", v.initPool(admin.publicKey, fakeD.publicKey, fakeLp.publicKey, k.market, 1n, 1n), 13, [admin]);
 
 await expectFail("redeem before maturity", v.redeem(user.publicKey, m, toRaw(1, X_DECIMALS)), 6);
 

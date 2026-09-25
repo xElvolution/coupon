@@ -1,13 +1,10 @@
-[package]
-name = "coupon_vault"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+resolver = "2"
+members = ["crates/common", "programs/coupon_vault", "programs/coupon_market", "programs/coupon_faucet"]
 
-[lib]
-crate-type = ["cdylib", "lib"]
-
-[dependencies]
+[workspace.dependencies]
 solana-program = "2.2"
+coupon_common = { path = "crates/common" }
 
 [profile.release]
 overflow-checks = true
