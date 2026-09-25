@@ -46,7 +46,7 @@ export default function Markets() {
           <div className="mt-6 space-y-2 text-xs">
             <div className="flex justify-between"><span className="text-dim">Prices</span><span className="num">{spy?.priceSource === "pyth" ? "Pyth Hermes" : "Jupiter live + Pyth"}</span></div>
             <div className="flex justify-between"><span className="text-dim">Multipliers</span><span className="num">Solana mainnet</span></div>
-            <div className="flex justify-between"><span className="text-dim">Vault</span><span className="num text-share">Paper ledger</span></div>
+            <div className="flex justify-between"><span className="text-dim">Vault</span><span className="num text-share">Devnet program</span></div>
           </div>
         </div>
       </div>

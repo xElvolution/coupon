@@ -139,7 +139,10 @@ export async function fetchJupiter(mints: string[]): Promise<Record<string, { pr
 
 // Keep last good value per source; public RPCs rate limit hard.
 // Last good reads also persist to disk so a restart never serves an empty chain view.
-const MEMO_FILE = path.join(process.cwd(), ".cache", "memo.json");
+// On Vercel (read only filesystem outside /tmp) the memo lives in /tmp; memory is the fallback.
+const MEMO_FILE = process.env.VERCEL || process.env.COUPON_CACHE_DIR
+  ? path.join(process.env.COUPON_CACHE_DIR || "/tmp", "coupon-memo.json")
+  : path.join(process.cwd(), ".cache", "memo.json");
 const memo = new Map<string, { at: number; v: unknown }>(
   (() => { try { return Object.entries(JSON.parse(fs.readFileSync(MEMO_FILE, "utf8"))) as [string, { at: number; v: unknown }][]; } catch { return []; } })(),
 );

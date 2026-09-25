@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import Logo from "../Logo";
 import WalletButton from "../WalletButton";
 import { useMarkets } from "../useMarkets";
-import { ago } from "@/lib/format";
 
 const NAV = [
   { href: "/app/markets", label: "Markets", icon: "M3 17l5-5 4 4 8-8M14 8h6v6" },
@@ -13,6 +12,7 @@ const NAV = [
   { href: "/app/trade", label: "Trade", icon: "M7 7h13l-3-3M17 17H4l3 3" },
   { href: "/app/portfolio", label: "Portfolio", icon: "M4 7h16v12H4zM8 7V5h8v2" },
   { href: "/app/replay", label: "Replay", icon: "M4 12a8 8 0 1 0 3-6.2M4 4v4h4M12 8v4l3 2" },
+  { href: "/app/faucet", label: "Faucet", icon: "M12 3c3 4 6 7.2 6 10.5A6 6 0 0 1 6 13.5C6 10.2 9 7 12 3z" },
 ];
 
 function Icon({ d }: { d: string }) {
@@ -30,7 +30,7 @@ function Status() {
         {spy ? (spy.priceSource === "pyth" ? "Pyth live" : spy.priceSource === "jupiter" ? "Prices live" : "Pyth last update") : error ? "Prices offline" : "Prices …"}
       </span>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-line-2 bg-surface px-2.5 py-1 text-dim">Multipliers · Mainnet</span>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-share/30 bg-share/10 px-2.5 py-1 text-share">Vault · Paper ledger</span>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-share/30 bg-share/10 px-2.5 py-1 text-share">Vault · Devnet</span>
     </div>
   );
 }

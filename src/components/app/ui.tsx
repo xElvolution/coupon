@@ -10,9 +10,9 @@ function Portal({ children }: { children: React.ReactNode }) {
   return el ? createPortal(children, el) : null;
 }
 import type { MarketSnapshot } from "@/lib/types";
-import type { Receipt } from "../useLedger";
+import type { TxState } from "../useVault";
+import { explorerTx } from "@/lib/vault/deployment";
 import { units, usd, short } from "@/lib/format";
-import type { DevnetState } from "./useReceiptFlow";
 
 export function PageHead({ kicker, title, accent, sub, right }: { kicker: string; title: string; accent?: string; sub?: string; right?: React.ReactNode }) {
   return (
@@ -89,52 +89,71 @@ export function Row({ k, v, accent }: { k: string; v: React.ReactNode; accent?: 
   );
 }
 
-export function PaperNote() {
+/** Clear label for the devnet mock assets. */
+export function TestNote({ children }: { children?: React.ReactNode }) {
   return (
-    <div className="flex gap-3 rounded-xl border border-share/25 bg-share/[0.06] px-4 py-3 text-[13px] text-share">
-      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-share" />
-      <span>Paper ledger. Prices and multipliers are real, vault balances live in this browser and no tokens move. With a wallet connected, each receipt is also signed onto Solana devnet as a memo transaction.</span>
+    <div className="flex gap-3 rounded-xl border border-share/25 bg-share/[0.06] px-4 py-3 text-[13px] leading-relaxed text-share">
+      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-share" />
+      <span>{children ?? "Runs on Solana devnet with test tokens. Each test xStock is a Token-2022 mint whose ScaledUiAmount multiplier mirrors the real mainnet value. Nothing here trades on mainnet."}</span>
     </div>
   );
 }
 
-const TITLES: Record<Receipt["action"], string> = { split: "Split recorded", redeem: "Redeem recorded", sell: "Coupon sold", buy: "Coupon bought" };
+/** Shown when the wallet has no devnet SOL for fees. */
+export function GasNote({ sol }: { sol: number | null }) {
+  if (sol == null || sol >= 0.002) return null;
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-lime/30 bg-lime/[0.06] px-4 py-3 text-[13px] text-ink sm:flex-row sm:items-center sm:justify-between">
+      <span>This wallet has {sol === 0 ? "no" : "almost no"} devnet SOL for network fees.</span>
+      <a href="https://faucet.solana.com" target="_blank" rel="noreferrer" className="inline-flex h-11 shrink-0 items-center font-semibold text-lime hover:underline sm:h-auto">Get devnet SOL at faucet.solana.com ↗</a>
+    </div>
+  );
+}
 
-export function ReceiptModal({ r, onClose, devnet, onRetry }: { r: Receipt | null; onClose: () => void; devnet?: DevnetState; onRetry?: () => void }) {
+export function TxModal({ tx, onClose }: { tx: TxState; onClose: () => void }) {
+  const r = tx.receipt;
+  const open = tx.state !== "idle";
   return (
     <Portal><AnimatePresence>
-      {r && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-bg/70 p-4 backdrop-blur-[14px]" onClick={onClose}>
+      {open && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-bg/70 p-4 backdrop-blur-[14px]" onClick={tx.state === "ok" || tx.state === "err" ? onClose : undefined}>
           <motion.div initial={{ y: 24, scale: 0.97, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 12, opacity: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} onClick={(e) => e.stopPropagation()} className="no-scrollbar relative max-h-[calc(100svh-32px)] w-full max-w-md overflow-y-auto">
-            <div className="overflow-hidden rounded-t-[20px] border border-line-2 bg-surface p-7">
-              <div className="flex items-center justify-between">
-                <span className="micro text-lime">Ledger receipt</span>
-                <motion.span initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.15, type: "spring", stiffness: 400, damping: 14 }} className="flex h-9 w-9 items-center justify-center rounded-full bg-lime text-bg">✓</motion.span>
+            {(tx.state === "signing" || tx.state === "confirming") && (
+              <div className="rounded-[20px] border border-line-2 bg-surface p-7">
+                <span className="micro text-lime">{tx.state === "signing" ? "Approve in your wallet" : "Confirming on devnet"}</span>
+                <div className="display mt-4 text-3xl">{tx.label}</div>
+                <div className="mt-6 flex items-center gap-3 text-sm text-dim"><span className="live-dot h-2 w-2 rounded-full bg-lime" />{tx.state === "signing" ? "Waiting for your signature…" : "Transaction sent. Waiting for confirmation…"}</div>
               </div>
-              <div className="display mt-4 text-4xl">{TITLES[r.action]}</div>
-              <div className="mt-6 divide-y divide-line">
-                <Row k="Asset" v={r.x} />
-                {r.action === "split" && <><Row k="Deposited" v={`${units(r.amount)} ${r.x}`} /><Row k="Received" v={`${units(r.amount)} p${r.x} + ${units(r.amount)} d${r.x}`} accent /></>}
-                {r.action === "redeem" && <><Row k="Returned" v={`${units(r.amount)} p${r.x} + d${r.x}`} /><Row k="Received" v={`${units(r.amount)} ${r.x}`} accent /></>}
-                {r.action === "sell" && <><Row k="Sold" v={`${units(r.amount)} d${r.x}`} /><Row k="Price" v={usd(r.price, 4)} /><Row k="Cash received" v={usd(r.cash)} accent /></>}
-                {r.action === "buy" && <><Row k="Bought" v={`${units(r.amount)} d${r.x}`} accent /><Row k="Price" v={usd(r.price, 4)} /><Row k="Cash paid" v={usd(-(r.cash ?? 0))} /></>}
-                {r.multiplier != null && <Row k="Mainnet multiplier at entry" v={r.multiplier.toFixed(9)} />}
-                <Row k="Time" v={new Date(r.at).toLocaleString()} />
+            )}
+            {tx.state === "err" && (
+              <div className="rounded-[20px] border border-line-2 bg-surface p-7">
+                <span className="micro text-dim">Transaction not sent</span>
+                <div className="display mt-4 text-3xl">{tx.label}</div>
+                <p className="mt-4 text-sm leading-relaxed text-ink">{tx.error}</p>
+                <button onClick={onClose} className="btn btn-line mt-6 h-11 w-full">Close</button>
               </div>
-            </div>
-            <div className="perf-h h-2 bg-surface" />
-            <div className="rounded-b-[20px] border border-line-2 border-t-0 bg-surface px-7 pb-6 pt-4">
-              <div className="micro !text-[9px] text-faint">Receipt id · paper ledger</div>
-              <div className="num mt-1 break-all text-xs text-dim">{r.id}</div>
-              <div className="mt-4 rounded-xl border border-line bg-bg/60 px-4 py-3 text-xs">
-                <div className="micro !text-[9px] text-faint">Devnet record · memo transaction</div>
-                {(!devnet || devnet.state === "idle" || devnet.state === "nowallet") && <div className="mt-1.5 text-dim">Connect a wallet to also sign this receipt onto Solana devnet.</div>}
-                {devnet?.state === "pending" && <div className="mt-1.5 flex items-center gap-2 text-dim"><span className="live-dot h-1.5 w-1.5 rounded-full bg-lime" />Waiting for your wallet signature…</div>}
-                {devnet?.state === "ok" && devnet.sig && <a href={`https://explorer.solana.com/tx/${devnet.sig}?cluster=devnet`} target="_blank" rel="noreferrer" className="num mt-1.5 flex items-center justify-between text-lime hover:underline"><span>{short(devnet.sig, 10, 10)}</span><span>↗</span></a>}
-                {devnet?.state === "err" && <div className="mt-1.5 flex items-center justify-between gap-3 text-dim"><span>{devnet.error}</span>{onRetry && <button onClick={onRetry} className="shrink-0 text-lime hover:underline">Retry</button>}</div>}
-              </div>
-              <button onClick={onClose} className="btn btn-lime mt-5 h-11 w-full">Done</button>
-            </div>
+            )}
+            {tx.state === "ok" && r && (
+              <>
+                <div className="overflow-hidden rounded-t-[20px] border border-line-2 bg-surface p-7">
+                  <div className="flex items-center justify-between">
+                    <span className="micro text-lime">Confirmed on devnet</span>
+                    <motion.span initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.15, type: "spring", stiffness: 400, damping: 14 }} className="flex h-9 w-9 items-center justify-center rounded-full bg-lime text-bg">✓</motion.span>
+                  </div>
+                  <div className="display mt-4 text-4xl">{r.title}</div>
+                  <div className="mt-6 divide-y divide-line">
+                    {r.lines.map(([k, v], i) => <Row key={k} k={k} v={v} accent={i === r.lines.length - 1} />)}
+                    <Row k="Time" v={new Date(r.at).toLocaleString()} />
+                  </div>
+                </div>
+                <div className="perf-h h-2 bg-surface" />
+                <div className="rounded-b-[20px] border border-line-2 border-t-0 bg-surface px-7 pb-6 pt-4">
+                  <div className="micro !text-[9px] text-faint">Transaction signature</div>
+                  <a href={explorerTx(r.sig)} target="_blank" rel="noreferrer" className="num mt-1.5 flex min-h-11 items-center justify-between gap-3 text-sm text-lime hover:underline"><span>{short(r.sig, 10, 10)}</span><span>View on Explorer ↗</span></a>
+                  <button onClick={onClose} className="btn btn-lime mt-4 h-11 w-full">Done</button>
+                </div>
+              </>
+            )}
           </motion.div>
         </motion.div>
       )}

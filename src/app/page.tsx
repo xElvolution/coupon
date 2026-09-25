@@ -89,7 +89,7 @@ export default function Home() {
             ["xStocks by Backed", "SPYx, AAPLx and more"],
             ["Pyth + Jupiter", "Oracle and live prices"],
             ["Token-2022", "Scaled UI multiplier"],
-            ["Devnet vault", "Paper ledger today"],
+            ["coupon_vault", "Program live on devnet"],
           ].map(([a, b]) => (
             <div key={a} className="bg-bg px-5 py-7">
               <div className="micro !text-[10px] text-ink">{a}</div>
@@ -142,7 +142,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="micro mx-auto mt-14 max-w-6xl px-6 !text-[10px] text-faint">Built for Stocklana · Prices live on Solana, Pyth reference · Multipliers Solana mainnet · Vault paper ledger on devnet release</div>
+        <div className="micro mx-auto mt-14 max-w-6xl px-6 !text-[10px] text-faint">Built for Stocklana · Prices live on Solana, Pyth reference · Multipliers Solana mainnet · Vault program on Solana devnet with test tokens</div>
         <div aria-hidden className="display pointer-events-none mt-6 select-none text-center text-[clamp(6rem,24vw,22rem)] leading-[0.8]" style={{ marginBottom: "-0.14em", background: "linear-gradient(180deg, rgba(200,245,96,.16), transparent 85%)", WebkitBackgroundClip: "text", color: "transparent" }}>COUPON</div>
       </footer>
     </main>
