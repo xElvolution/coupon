@@ -44,7 +44,7 @@ export type Deployment = {
   markets: MarketDeployment[];
 };
 
-export const VaultIx = { InitConfig: 0, InitMarket: 1, Split: 3, Recombine: 4, Claim: 5, Redeem: 6, Bump: 9 } as const;
+export const VaultIx = { InitConfig: 0, InitMarket: 1, Split: 3, Recombine: 4, Claim: 5, Redeem: 6, Bump: 9, SyncMetas: 10 } as const;
 export const MarketIx = { InitConfig: 0, InitPool: 1, SwapSell: 2, SwapBuy: 3, AddLiquidity: 4, RemoveLiquidity: 5 } as const;
 export const FaucetIx = { InitConfig: 0, Drip: 1, AdminMint: 2 } as const;
 
@@ -139,8 +139,18 @@ export class CouponVault {
   market(x: PublicKey) {
     return this.pda([Buffer.from("market"), x.toBuffer()], this.vaultId);
   }
-  pos(market: PublicKey, owner: PublicKey) {
-    return this.pda([Buffer.from("pos"), market.toBuffer(), owner.toBuffer()], this.vaultId);
+  /** Position of one d token account (not of the owner), so each account settles exactly. */
+  pos(market: PublicKey, dAccount: PublicKey) {
+    return this.pda([Buffer.from("pos"), market.toBuffer(), dAccount.toBuffer()], this.vaultId);
+  }
+  /** Position of an owner's associated d account. */
+  posOf(m: MarketDeployment, owner: PublicKey) {
+    const k = this.keys(m);
+    return this.pos(k.market, this.ata(k.d, owner));
+  }
+  /** System account of coupon_vault that pays rent for positions the transfer hook opens. */
+  get rentPayer() {
+    return this.pda([Buffer.from("payer")], this.vaultId);
   }
   pool(mint: PublicKey) {
     return this.pda([Buffer.from("pool"), mint.toBuffer()], this.marketId);
@@ -149,10 +159,10 @@ export class CouponVault {
   metas(d: PublicKey) {
     return this.pda([Buffer.from("extra-account-metas"), d.toBuffer()], this.vaultId);
   }
-  /** Accounts a d transfer needs for the hook, given the owners of both token accounts. */
-  hookAccounts(m: MarketDeployment, owners: PublicKey[]): AccountMeta[] {
+  /** Accounts a d transfer needs for the hook, given both d token accounts. */
+  hookAccounts(m: MarketDeployment, dAccounts: PublicKey[]): AccountMeta[] {
     const k = this.keys(m);
-    return [R(this.metas(k.d)), W(k.market), R(k.x), ...owners.map((o) => W(this.pos(k.market, o))), R(this.vaultId)];
+    return [R(this.metas(k.d)), W(k.market), R(k.x), ...dAccounts.map((a) => W(this.pos(k.market, a))), W(this.rentPayer), R(SystemProgram.programId), R(this.vaultId)];
   }
   /** Wallet to wallet d transfer (what Phantom builds after resolving the hook accounts). */
   transferD(from: PublicKey, to: PublicKey, m: MarketDeployment, raw: bigint) {
@@ -160,7 +170,7 @@ export class CouponVault {
     const data = Buffer.concat([Buffer.from([12]), u64(raw), Buffer.from([X_DECIMALS])]);
     return [
       this.ensureAta(from, k.d, to),
-      new TransactionInstruction({ programId: TOKEN_2022, data, keys: [W(this.ata(k.d, from)), R(k.d), W(this.ata(k.d, to)), S(from, false), ...this.hookAccounts(m, [from, to])] }),
+      new TransactionInstruction({ programId: TOKEN_2022, data, keys: [W(this.ata(k.d, from)), R(k.d), W(this.ata(k.d, to)), S(from, false), ...this.hookAccounts(m, [this.ata(k.d, from), this.ata(k.d, to)])] }),
     ];
   }
   drip(mint: PublicKey, owner: PublicKey) {
@@ -201,7 +211,7 @@ export class CouponVault {
   // ---------- coupon_vault ----------
   private vaultPositionKeys(user: PublicKey, m: MarketDeployment) {
     const k = this.keys(m);
-    return [S(user), R(this.config), W(k.market), W(this.pos(k.market, user)), R(k.x), W(k.p), W(k.d), W(this.ata(k.x, user)), W(this.ata(k.p, user)), W(this.ata(k.d, user)), W(this.ata(k.x, this.auth)), R(this.auth), R(TOKEN_2022), R(SystemProgram.programId)];
+    return [S(user), R(this.config), W(k.market), W(this.posOf(m, user)), R(k.x), W(k.p), W(k.d), W(this.ata(k.x, user)), W(this.ata(k.p, user)), W(this.ata(k.d, user)), W(this.ata(k.x, this.auth)), R(this.auth), R(TOKEN_2022), R(SystemProgram.programId)];
   }
   private userAtas(user: PublicKey, mints: (PublicKey | null)[]) {
     return mints.filter((x): x is PublicKey => !!x).map((mint) => this.ensureAta(user, mint, user));
@@ -219,11 +229,13 @@ export class CouponVault {
   redeem(user: PublicKey, m: MarketDeployment, raw: bigint) {
     return this.vaultIx(user, m, VaultIx.Redeem, raw);
   }
-  claim(user: PublicKey, m: MarketDeployment) {
+  /** Claims coupon income of one d token account (the owner's associated account by default). */
+  claim(user: PublicKey, m: MarketDeployment, dAccount?: PublicKey) {
     const k = this.keys(m);
+    const da = dAccount ?? this.ata(k.d, user);
     return [
-      ...this.userAtas(user, [k.x, k.d]),
-      this.ix(this.vaultId, Buffer.from([VaultIx.Claim]), [S(user), R(this.config), W(k.market), W(this.pos(k.market, user)), R(k.x), R(k.p), R(k.d), W(this.ata(k.x, user)), R(this.ata(k.d, user)), W(this.ata(k.x, this.auth)), R(this.auth), R(TOKEN_2022), R(SystemProgram.programId)]),
+      ...this.userAtas(user, dAccount ? [k.x] : [k.x, k.d]),
+      this.ix(this.vaultId, Buffer.from([VaultIx.Claim]), [S(user), R(this.config), W(k.market), W(this.pos(k.market, da)), R(k.x), R(k.p), R(k.d), W(this.ata(k.x, user)), R(da), W(this.ata(k.x, this.auth)), R(this.auth), R(TOKEN_2022), R(SystemProgram.programId)]),
     ];
   }
 
@@ -240,8 +252,8 @@ export class CouponVault {
     return [
       S(user), R(this.marketConfig), W(t.pool), R(t.mint), R(this.usdc), W(this.ata(t.mint, t.pool)), W(this.ata(this.usdc, t.pool)), W(t.lp),
       W(this.ata(t.mint, user)), W(this.ata(this.usdc, user)), W(this.ata(t.lp, user)), R(TOKEN_2022), R(SystemProgram.programId), R(this.vaultId),
-      R(this.config), W(k.market), W(this.pos(k.market, user)), R(k.x), R(k.p), W(this.ata(k.x, user)), W(this.ata(k.x, this.auth)), R(this.auth),
-      ...(side === "d" ? this.hookAccounts(m, [user, t.pool]) : []),
+      R(this.config), W(k.market), W(this.posOf(m, user)), R(k.x), R(k.p), W(this.ata(k.x, user)), W(this.ata(k.x, this.auth)), R(this.auth),
+      ...(side === "d" ? this.hookAccounts(m, [this.ata(k.d, user), this.ata(k.d, t.pool)]) : []),
     ];
   }
   private tradeIx(user: PublicKey, m: MarketDeployment, tag: number, args: bigint[], side: Side) {
@@ -287,9 +299,14 @@ export class CouponVault {
       this.ix(this.marketId, Buffer.concat([Buffer.from([MarketIx.InitPool]), u64(dRaw), u64(usdcRaw)]), [
         S(admin), R(this.marketConfig), W(vaultMarket), R(dMint), R(this.usdc), W(pool), W(this.ata(dMint, pool)), W(this.ata(this.usdc, pool)), W(lpMint),
         W(this.ata(dMint, admin)), W(this.ata(this.usdc, admin)), W(this.ata(lpMint, admin)), R(TOKEN_2022), R(SystemProgram.programId),
-        ...(hook ? this.hookAccounts(hook, [admin, pool]) : []),
+        ...(hook ? this.hookAccounts(hook, [this.ata(dMint, admin), this.ata(dMint, pool)]) : []),
       ]),
     ];
+  }
+  /** Rewrites a market's hook account list in the current layout (after a program upgrade). */
+  syncMetas(admin: PublicKey, m: MarketDeployment) {
+    const k = this.keys(m);
+    return this.ix(this.vaultId, Buffer.from([VaultIx.SyncMetas]), [S(admin), R(this.config), R(k.market), R(k.d), W(this.metas(k.d)), R(SystemProgram.programId)]);
   }
   bump(admin: PublicKey, m: MarketDeployment, newMultiplier: number) {
     const k = this.keys(m);
@@ -325,7 +342,7 @@ export class CouponVault {
   }
   async readPosition(conn: Connection, m: MarketDeployment, owner: PublicKey) {
     const k = this.keys(m);
-    const accts = [this.ata(k.x, owner), this.ata(k.p, owner), this.ata(k.d, owner), this.ata(this.usdc, owner), k.lp ? this.ata(k.lp, owner) : this.ata(k.d, owner), this.pos(k.market, owner), k.pLp ? this.ata(k.pLp, owner) : this.ata(k.d, owner)];
+    const accts = [this.ata(k.x, owner), this.ata(k.p, owner), this.ata(k.d, owner), this.ata(this.usdc, owner), k.lp ? this.ata(k.lp, owner) : this.ata(k.d, owner), this.posOf(m, owner), k.pLp ? this.ata(k.pLp, owner) : this.ata(k.d, owner)];
     const r = await conn.getMultipleAccountsInfo(accts);
     const bal = (i: number) => (r[i] && r[i]!.data.length >= 72 ? r[i]!.data.readBigUInt64LE(64) : 0n);
     const pos = r[5] && r[5].data.length >= 24 ? r[5].data : null;

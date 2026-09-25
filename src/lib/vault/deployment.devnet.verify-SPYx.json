@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-25T16:48:15.407Z",
+  "at": "2026-09-25T17:07:42.355Z",
   "tester": "Q5UF6ub1TGTYSv3sjR3vYZVktTUAHLVp19s4CHSZp1n",
   "results": [
     {
@@ -8,7 +8,7 @@
     },
     {
       "action": "split 50 SPYx",
-      "sig": "MRXayZJJyrJCrC9hwVXTKGAa1GxBmbwwBonytBg2QjJbvhNoPod41gsRsC28mN5KaS13QLXfBvkvCtKm8QQKmVZ"
+      "sig": "5NqPnHHM469VUVaZqjCZmukPYURzJNTQyGMbxxB9FWHiA592qUFga8c7XZURQykABxoJPLi3gmBZ2fUGsaooEfbU"
     },
     {
       "action": "sell 20 with min_out 2x (slippage)",
@@ -16,35 +16,35 @@
     },
     {
       "action": "sell 20 dSPYx",
-      "sig": "3NRbtC1LXRvgTVs8tawjt6pu8EzMGBwLDSxRPq3MFMQj2MuhF5JKPtvghkHGBjqHXW4CNZwToyfwzeVvRyjW8w6k"
+      "sig": "2jUut8fJaqLnupyxGuHffEyU3p1FvRvJ2Hv2DTQHJK5cWtHYmsLtuGk5ooU6MK9ZtsTa1zpVzpZEgWd1MWDS9XdU"
     },
     {
       "action": "admin bump",
-      "sig": "5cHvwAqbrU9XEk6mm9ipmwt4nAfNfWjp9K7Rer9mm5DA4rHChrkEXbz2T8XodbsQ3PcmM9N7d5qg2cEUFiWezsFy"
+      "sig": "6GNgWPreHtNLibGxj6hHarFJtBywYPCr7QfJe9kUqFfnLdq97ivSg4atBuAqN4NQM8BRMv2MFYaknfHWSuZtd8p"
     },
     {
       "action": "claim",
-      "sig": "2ajfRbJuZHApSRNeQN5fSKuvGoWfENNjY3ZmiGkBKkUAoj6nzBjTSHENpUhN8venAbbMZakqcktsVN92ee4wyre5"
+      "sig": "2pwKir83pZdZBv5a5MFwu8pHBJ3W5ZkGMdL8VJjtPGzD1XgRpfG3TCSR292wYLzmDiy8tBgV96XybQprqpDji9tD"
     },
     {
       "action": "recombine 10 SPYx",
-      "sig": "2TTWvTvHAhkGPKxHY9u1YRJEKaX2vCqQxYobhTXoeTMzWaXEJRnXYUhj4wFs2BWn65LzwGL8U5kSTvRGw6LmLjFb"
+      "sig": "5iZEiPD5RGuJM5gm7jVGGpUn4wpJudE9QFJUenoQBnoLWDM7F4QW89oCv4g9WWx9xqpHcKkNCc7GeKgqzvfsWHML"
     },
     {
       "action": "buy with 10 USDC",
-      "sig": "65NqUygA3mzEr7KzvFMRq8fUHd4b93swafy4NMZDkZfrRELqthkqJDcLNMSqanReaLjxzuSnAUtBy5C7zddMGpJ1"
+      "sig": "5kT34aW8zbEjP4SSbjdQYmfocrGoWSA5PMmMtNxnwR1XeHf912zWYZBnYEj1GuSc6SHxJxa5hpwgYetjRqbRMVdH"
     },
     {
       "action": "add liquidity 5 d",
-      "sig": "5GNmXyCniRykTQjhsyC7NsSPvHfYMCntXLT7r8XubuJUJfUXFXw47YFtfZtD1VzpFPXxQDK7fb9iKtmkEGbjGqX5"
+      "sig": "3DBFWfeSgPoqYGwSyUQ7oTVqGLbRiho2d8EWRQ6mVTQfYcTAXHVqUf12mywXZ5d5E7gW2umwqFMVHPM5A4tnYPr7"
     },
     {
       "action": "remove liquidity",
-      "sig": "26BEVuQNmXT2VQwgc5XoRM7RHUA8PGdQvoPHhQC2P4HXCqjMSkfobiZ2yxT4UB8eDKu8xHkSvCasEXSo2bdPKUxW"
+      "sig": "2jB26fWeUA5j6HfXNRJSsiu3hnPpDV3vxDKRZ78o5hiGFFK2f5SZreCnBHn5szBXRvUNHn9unpcmLEc3Lht3zQQo"
     },
     {
       "action": "buy pSPYx with 100 USDC",
-      "sig": "3tQUCtXVc3G1h2Ee6rBi4hTB6ifTCr9v9y4FGXDiqzq8hJCFAfqitL9yXQPipqNHLYcgzGVbyAaWfKT9VRp1EqkU"
+      "sig": "3mYcj3ce69mBzrLCxmb8RontfM1QneimfLND148akLxmYF6GjgYJfiPdarAyS5bXu9DCzbQTvYySMAFitGjb3WJj"
     },
     {
       "action": "sell 5 pSPYx with min_out 2x (slippage)",
@@ -52,39 +52,71 @@
     },
     {
       "action": "sell 5 pSPYx",
-      "sig": "2ACpugzyyQdxrzdEa1CztZ15racvZwW1r2aKVtS5gffSSTrrjvBxZqinfuK3vmsLfJ4qKgtV8mAKn17RLztswKQR"
+      "sig": "3vhkg3PDUBZ6f6CBtZXJfaqthvXHjwGcemC3UCZZxDAvTgxo97Mkua7C7EhAVTPzUicdbaoJFzCWf8p7gJ5sKBR1"
     },
     {
       "action": "receiver opens position",
-      "sig": "5DWgJsUmo9ut2p43YWjxQsKQ3sbgc9KtcG82yLqBy8WhUZMYZK1gRw4SF4vZogf9XrXjJMAegiDhJGaGQ9ke4AW7"
+      "sig": "64igxQnVazaZB7w7pP3GJUPVZNLyohH1W1PxWA62cu1KdXKCSA1BiUZYgJrJCH77smKy9pix4ow8nt8F3JNjWtrw"
     },
     {
       "action": "tester claim (snapshot now)",
-      "sig": "2qteCvzWkU7oHKpNmrdWExQC4CQGK216uEnNCsyy1ADjjxc7VjDv5Yo7CCpPDN9fy1QJdK28a1FyLNKHXAwahudy"
+      "sig": "WYGKrACG7LLVJASCVwnEQ4bj93W3SrzUrD88CXfB8U4DAbvCiEbyvXwwBbkDxxZChtziRppHBNfEADoGAAF9BPf"
     },
     {
       "action": "admin bump 2",
-      "sig": "xX3VwfTy3K7VqiKUTThL6eeghDBQf4cGfcycDwysUJhqYQQbU7oSymu9CZH5dYbcMkendCrt5dQrSEstBaDYbuy"
+      "sig": "5B8STttZU1hJgWmpBUgSZvfGj183L99evXPy8xLmYsedKwHKfj8tvoBt6a9BundbShgMsMSBwmRg1eniBk2Ypm6H"
     },
     {
       "action": "transfer 10 dSPYx to receiver",
-      "sig": "3P6UEFprzTvVR7FFiGqCsVs5NXWzTkxx4peptpGvLT5eTZTx5QSqgZUkvWVrMy3VCHTkckeAdsP3AiFNnUdo55d9"
+      "sig": "4NZb7Gy3FYeYszHP1T9vudVS2dcot55RnyDJXWj3HS7KyDGB5z5X5emKeb5nGMeaQZLocusfSsbsmRCTQ9H2BG4a"
     },
     {
       "action": "receiver claim after transfer",
-      "sig": "3LY69BqooQTz1iKtGVbLahK66aWQhmVV9x4PxHfNZfgM9BzPtor6pW6rn5dUUT4QD2o8J9e9BbuVbsXY6hojRPdj"
+      "sig": "2wHJrKx8Vz3Zju21r3yu4zM6kziwFAwgn3XAaEegtSNahbxPDz5xPk1WHq93DZhWrGER3tdAQMQQRrxL4xyPm5Xt"
     },
     {
       "action": "sender claim after transfer",
-      "sig": "5GRDPQrJ7NMJAeqWtvNc92tKFHLoge7SbnhmCr33BrJqfci7nHHgYx5bfCFPKq59y6JPvbdHzNBXH2NPeBVM8cUX"
+      "sig": "3QveFAcj1ZJkeZvD9tquBbRmKb22NPed2AJiUdnRXxtywqgFJ2jFFLxcUnPkzqb8gLisVBtaA3tp6s1PNZAAkBho"
+    },
+    {
+      "action": "transfer 7 dSPYx to a fresh wallet",
+      "sig": "M9GDabHEF3FC9km9Abd3z655AeKQK8yx9nbq2Hf64Bd31sQ5yPyTAngJaNYJ8PYxDyrC3dqnBaF2oPmm7G1z3zM"
+    },
+    {
+      "action": "tester opens a second d account",
+      "sig": "CPRRycsHvfXzpPZCtevjHH8gKexAmEEBx79mueGayBVDEnzcXt7Ri7LqJzU3eni4ZiPPYKjtKCk82fntVppGduF"
+    },
+    {
+      "action": "move 5 dSPYx into the second account",
+      "sig": "49nQzwV2HB43smipWaoSzmmniPN3bizQg5mcg9cqR3PmNSzGqGUrkiU6AeWyVWYMDN9YyqKUQoh61jaBQTb7ktLx"
     },
     {
       "action": "admin bump 3",
-      "sig": "3GkTcuZmVRMDuYmQnVVisPHEjweWBm1YwAKRHCxQeL6supwpGkCNqDBe6hXLg3qrDRbgPtFnU42tZiHdzsPivjRV"
+      "sig": "3i5gksN1qE8ojD9WwvdF5UUt5jsMkGFse6mA5zPhNUR83A6Ni7hfnboGgViu7UvNnTyuzgC8Ybq3zLBpGPBViWsq"
     },
     {
       "action": "receiver claim after next bump",
-      "sig": "5sZk7a3DxHhQX6uk2nJnezxD8tRaP4WE6k8xrKHCm3qWSB8dZJ4YfMRdwge7hBXcr6DzTq8oGYe5MeQV8ddtxyQj"
+      "sig": "3CcJu7H4GjgxVQzJCdY8iMiYC2RxamEztMGt9WqMeYE9o2ey1kxg6dRTJwQ9DmJr172GoA1nto8BTx1KfYzW57c"
+    },
+    {
+      "action": "fresh wallet claims",
+      "sig": "45yxiAphf7wM2gGgFBfXBNGde6Yno5osiViH2bLcMy2BdcLmfBHW12TpLDyLg1WHuNiMze7FjiSPjv6u52ubp1SX"
+    },
+    {
+      "action": "claim on the associated d account",
+      "sig": "2UF5ZrjeH713HNx6J6VgttR4o5FERwxCVKhPufm4Es1qGLm5k8ekEv1WXVZVMe4QhrbNdw55jEzoWBhjrZ48fQTc"
+    },
+    {
+      "action": "claim on the second d account",
+      "sig": "3vw4FzaFtCsWxUVGFULS2XEoAPAQypvhvVhmwaeb3ThtxVCLUWHLTGH4bCBtfccKoGbZksQjBv1RQCQYqLhiAmvY"
+    },
+    {
+      "action": "fresh wallet",
+      "note": "CX8WdPF3NV8QLuBnESKHQ4somZxcrSUvaezHYQaa8Akn"
+    },
+    {
+      "action": "second d account",
+      "note": "EQYkLHuBJVoGVR8Ys4V2DTnYUCHToqLAxfv3WBXf9CQV"
     },
     {
       "action": "hook called outside a transfer",
@@ -98,14 +130,5 @@
       "action": "redeem before maturity",
       "expectError": "Not matured yet. Shares redeem after the 12 month maturity."
     }
-  ],
-  "firstPass": {
-    "note": "The first pass on the new markets claimed the SPYx faucet, then stopped because the unchanged test USDC mint was still in its one hour cooldown from the earlier run. The script now checks each token's cooldown separately; the full rerun above passed.",
-    "results": [
-      {
-        "action": "faucet SPYx",
-        "sig": "ckDvuaPxoWTMFXGPAw3VQnSdbcbve6QRycX6apQvnfAsvG5nGjKgmPUGDTPe4ZRHjoKdenV8YswS2pMHomapjCs"
-      }
-    ]
-  }
+  ]
 }

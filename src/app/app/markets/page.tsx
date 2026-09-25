@@ -12,11 +12,28 @@ export default function Markets() {
   const spy = ms.find((m) => m.x === "SPYx");
   const paying = ms.filter((m) => m.trailingYield > 0);
   const s = useSpotlight(0);
+  const last = spy?.bumps?.length ? spy.bumps[spy.bumps.length - 1] : null;
   return (
     <div>
       <PageHead kicker="Markets" title="Dividend coupons," accent="priced live." sub="Every xStock with a dividend stream gets a 12 month coupon. Fair value is the live xStock price times the multiplier growth of the last 12 months." right={<div className="num text-xs text-dim">{data ? `Updated ${ago(Math.floor(data.at / 1000))}` : loading ? "Loading" : ""}{error ? " · partial data" : ""}</div>} />
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
+      {/* mobile: proof that the numbers are real, one tap from the onchain replay */}
+      <div className="card relative mt-6 overflow-hidden p-5 md:hidden">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-lime/10 blur-2xl" />
+        <div className="flex items-center justify-between gap-3">
+          <span className="micro !text-[9px] text-lime">Proof · Solana mainnet</span>
+          <span className="num text-[10px] text-faint">{last ? dateUTC(last.at) : "…"}</span>
+        </div>
+        <div className="mt-3 text-sm text-dim">Last real SPYx dividend bump</div>
+        <div className="num mt-1 text-[32px] leading-none text-ink">
+          {last ? `+${(100 * (last.next / last.prev - 1)).toFixed(4)}` : "…"}
+          <span className="ml-2 text-base text-dim">units per 100</span>
+        </div>
+        <div className="num mt-2 text-xs text-faint">{last ? `multiplier ${last.prev.toFixed(6)} → ${last.next.toFixed(6)}` : "reading the mint"}</div>
+        <Link href="/app/replay?x=SPYx" className="btn btn-lime mt-4 h-11 w-full text-sm">Verify on chain <span className="arr">→</span></Link>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:mt-8 md:grid-cols-3">
         <div {...s} className="card spot relative overflow-hidden p-6 md:col-span-2">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -70,6 +87,7 @@ export default function Markets() {
             <div className="col-span-2 flex justify-end gap-2 lg:col-span-1">
               {m && m.trailingYield > 0 ? (
                 <>
+                  <Link href={`/app/replay?x=${m.x}`} className="inline-flex h-11 items-center px-2 text-xs text-dim underline decoration-line-2 underline-offset-4 hover:text-lime md:h-9">Verify</Link>
                   <Link href={`/app/split?x=${m.x}`} className="btn btn-line h-11 px-4 text-xs md:h-9 md:px-3.5">Split</Link>
                   <Link href={`/app/trade?x=${m.x}`} className="btn btn-lime h-11 px-4 text-xs md:h-9 md:px-3.5">Trade</Link>
                 </>

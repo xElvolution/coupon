@@ -6,15 +6,17 @@
 //!   auth    ["auth"]                   mint authority of every p and d mint, owner of the xStock
 //!                                      vault token accounts, ScaledUiAmount authority of test mints
 //!   market  ["market", x_mint]         x, p, d mints, base multiplier, maturity
-//!   pos     ["pos", market, owner]     the holder's multiplier snapshot and income owed
+//!   pos     ["pos", market, d_account] multiplier snapshot and income owed, per d token account
+//!   payer   ["payer"]                  system account that pays rent for positions the hook opens
 //!   metas   ["extra-account-metas", d] Token-2022 transfer hook account list for each d mint
 //!
 //! Transfer hook: every d mint carries the Token-2022 TransferHook extension pointing at this
 //! program. On every transfer (wallet to wallet, Phantom, pools) Token-2022 calls `execute`, which
-//! books the sender's income up to now into `owed` and does the same for the receiver on its
-//! balance before the transfer, then resets both snapshots. So a holder only earns bumps that
-//! happen while it holds the coupon. A receiver without a position account yet starts earning
-//! from its first claim or split (the hook cannot create accounts; that income stays as surplus).
+//! books the source account's income up to now into `owed`, does the same for the destination on
+//! its balance before the transfer, and resets both snapshots, so a holder only earns bumps that
+//! happen while it holds the coupon. Positions are keyed by d token account, so several accounts
+//! of one owner each settle exactly. If the destination has no position yet, the hook opens it
+//! (rent from the `payer` PDA) with the current index as its snapshot.
 //!
 //! Math (integer base units, multipliers as 1e12 fixed point):
 //!   split(a) at multiplier m mints p = d = a * m / m_base
@@ -34,6 +36,8 @@ use solana_program::{
     instruction::{AccountMeta, Instruction},
     msg,
     program::{invoke, invoke_signed},
+    rent::Rent,
+    system_instruction,
     program_error::ProgramError,
     pubkey::Pubkey,
     system_program,
@@ -47,7 +51,8 @@ pub const YEAR: i64 = 365 * 24 * 3600;
 pub const CONFIG_LEN: usize = 8 + 32 + 1;
 pub const MARKET_LEN: usize = 8 + 32 * 3 + 8 * 5 + 1;
 pub const POS_LEN: usize = 8 + 8 + 8;
-pub const METAS_LEN: usize = 8 + 4 + 4 + 4 * 35;
+pub const N_METAS: usize = 6;
+pub const METAS_LEN: usize = 8 + 4 + 4 + N_METAS * 35;
 const TAG_CONFIG: &[u8; 8] = b"CPNVCFG1";
 pub const TAG_MARKET: &[u8; 8] = b"CPNMKT01";
 const TAG_POS: &[u8; 8] = b"CPNPOS02";
@@ -60,6 +65,7 @@ pub mod ix {
     pub const CLAIM: u8 = 5;
     pub const REDEEM: u8 = 6;
     pub const BUMP: u8 = 9;
+    pub const SYNC_METAS: u8 = 10;
 }
 
 pub struct Config {
@@ -124,6 +130,7 @@ pub fn process(pid: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramRe
         ix::INIT_MARKET => init_market(pid, accounts, arg_u64(rest, 0)?, arg_u64(rest, 1).map(|v| v as i64).unwrap_or(YEAR)),
         ix::SPLIT | ix::RECOMBINE | ix::REDEEM => position(pid, accounts, tag, arg_u64(rest, 0)?),
         ix::CLAIM => claim(pid, accounts),
+        ix::SYNC_METAS => sync_metas(pid, accounts),
         ix::BUMP => bump(pid, accounts, f64::from_le_bytes(rest.get(..8).ok_or(E::BadData)?.try_into().unwrap())),
         _ => Err(E::BadData.into()),
     }
@@ -199,15 +206,12 @@ fn init_market(pid: &Pubkey, a: &[AccountInfo], fair: u64, maturity_secs: i64) -
 }
 
 /// Writes the ExtraAccountMetaList Token-2022 reads on every d transfer:
-/// 5 market (w), 6 x mint, 7 pos of the source owner (w), 8 pos of the destination owner (w).
-fn init_metas<'a>(pid: &Pubkey, admin: &AccountInfo<'a>, market: &AccountInfo<'a>, x: &AccountInfo<'a>, dm: &AccountInfo<'a>, metas: &AccountInfo<'a>, sys: &AccountInfo<'a>) -> ProgramResult {
-    let (k, b) = Pubkey::find_program_address(&[b"extra-account-metas", dm.key.as_ref()], pid);
-    expect_key(metas, &k)?;
-    create_pda(admin, metas, sys, pid, &[b"extra-account-metas", dm.key.as_ref(), &[b]], METAS_LEN)?;
-    let mut d = metas.try_borrow_mut_data()?;
+/// 5 market (w), 6 x mint, 7 pos of the source token account (w), 8 pos of the destination token
+/// account (w), 9 rent payer PDA (w), 10 System Program.
+fn write_metas(d: &mut [u8], market: &Pubkey, x: &Pubkey) {
     d[..8].copy_from_slice(&EXECUTE_DISC);
-    d[8..12].copy_from_slice(&((4 + 4 * 35) as u32).to_le_bytes());
-    d[12..16].copy_from_slice(&4u32.to_le_bytes());
+    d[8..12].copy_from_slice(&((4 + N_METAS * 35) as u32).to_le_bytes());
+    d[12..16].copy_from_slice(&(N_METAS as u32).to_le_bytes());
     let mut put = |i: usize, disc: u8, cfg: [u8; 32], w: bool| {
         let o = 16 + i * 35;
         d[o] = disc;
@@ -215,21 +219,61 @@ fn init_metas<'a>(pid: &Pubkey, admin: &AccountInfo<'a>, market: &AccountInfo<'a
         d[o + 33] = 0;
         d[o + 34] = w as u8;
     };
-    put(0, 0, market.key.to_bytes(), true);
-    put(1, 0, x.key.to_bytes(), false);
-    // seeds: literal "pos", key of account 5 (market), owner field (offset 32, 32 bytes) of account 0 or 2
+    put(0, 0, market.to_bytes(), true);
+    put(1, 0, x.to_bytes(), false);
+    // seeds: literal "pos", key of account 5 (market), key of account 0 (source) or 2 (destination)
     for (i, acct) in [(2usize, 0u8), (3, 2)] {
         let mut c = [0u8; 32];
-        c[..11].copy_from_slice(&[1, 3, b'p', b'o', b's', 3, 5, 4, acct, 32, 32]);
+        c[..9].copy_from_slice(&[1, 3, b'p', b'o', b's', 3, 5, 3, acct]);
         put(i, 1, c, true);
     }
+    let mut c = [0u8; 32];
+    c[..7].copy_from_slice(&[1, 5, b'p', b'a', b'y', b'e', b'r']);
+    put(4, 1, c, true);
+    put(5, 0, system_program::ID.to_bytes(), false);
+}
+fn init_metas<'a>(pid: &Pubkey, admin: &AccountInfo<'a>, market: &AccountInfo<'a>, x: &AccountInfo<'a>, dm: &AccountInfo<'a>, metas: &AccountInfo<'a>, sys: &AccountInfo<'a>) -> ProgramResult {
+    let (k, b) = Pubkey::find_program_address(&[b"extra-account-metas", dm.key.as_ref()], pid);
+    expect_key(metas, &k)?;
+    create_pda(admin, metas, sys, pid, &[b"extra-account-metas", dm.key.as_ref(), &[b]], METAS_LEN)?;
+    write_metas(&mut metas.try_borrow_mut_data()?, market.key, x.key);
     Ok(())
 }
 
-/// Books income owed on `bal` since the snapshot and resets the snapshot to m. Skips owners with no
-/// position account (they start earning at their first claim or split).
-fn accrue(pid: &Pubkey, market: &AccountInfo, pos: &AccountInfo, owner: &Pubkey, bal: u64, m_base: u64, m: u64) -> ProgramResult {
-    let (k, _) = Pubkey::find_program_address(&[b"pos", market.key.as_ref(), owner.as_ref()], pid);
+/// 10 sync_metas: [admin s w, config, market, d_mint, metas w, system]
+/// Rewrites a market's hook account list in the current layout (resizing it if needed), so
+/// existing d mints follow a program upgrade without new mints.
+fn sync_metas(pid: &Pubkey, a: &[AccountInfo]) -> ProgramResult {
+    let [admin, config, market, dm, metas, sys, ..] = a else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let cfg = load_config(config, pid)?;
+    signer(admin)?;
+    if admin.key != &cfg.admin {
+        return Err(E::Unauthorized.into());
+    }
+    let mk = load_market(market, pid)?;
+    expect_key(dm, &mk.d)?;
+    expect_key(sys, &system_program::ID)?;
+    let (k, _) = Pubkey::find_program_address(&[b"extra-account-metas", dm.key.as_ref()], pid);
+    expect_key(metas, &k)?;
+    if metas.owner != pid {
+        return Err(E::BadAccount.into());
+    }
+    if metas.data_len() != METAS_LEN {
+        let need = Rent::get()?.minimum_balance(METAS_LEN).saturating_sub(metas.lamports());
+        if need > 0 {
+            invoke(&system_instruction::transfer(admin.key, metas.key, need), &[admin.clone(), metas.clone(), sys.clone()])?;
+        }
+        metas.resize(METAS_LEN)?;
+    }
+    write_metas(&mut metas.try_borrow_mut_data()?, market.key, &mk.x);
+    msg!("event:sync_metas d={}", dm.key);
+    Ok(())
+}
+
+/// Books income owed on `bal` since the snapshot and resets the snapshot to m. Positions are keyed
+/// by d token account, so every account settles on its own balance exactly.
+fn accrue(pid: &Pubkey, market: &AccountInfo, pos: &AccountInfo, acct: &Pubkey, bal: u64, m_base: u64, m: u64) -> ProgramResult {
+    let (k, _) = Pubkey::find_program_address(&[b"pos", market.key.as_ref(), acct.as_ref()], pid);
     expect_key(pos, &k)?;
     if pos.lamports() == 0 || pos.owner != pid {
         return Ok(());
@@ -245,11 +289,40 @@ fn accrue(pid: &Pubkey, market: &AccountInfo, pos: &AccountInfo, owner: &Pubkey,
     Ok(())
 }
 
+/// Opens the destination account's position inside the hook, paid by the protocol rent payer PDA
+/// (a system account of this program funded by the deployer). The snapshot is the current index,
+/// so the receiver earns from the moment the coupons arrive. If the payer cannot cover the rent
+/// the transfer still succeeds and the position opens at the holder's first claim instead.
+fn open_pos<'a>(pid: &Pubkey, market: &AccountInfo<'a>, acct: &Pubkey, pos: &AccountInfo<'a>, payer: &AccountInfo<'a>, sys: &AccountInfo<'a>, m: u64) -> Result<bool, ProgramError> {
+    let (k, b) = Pubkey::find_program_address(&[b"pos", market.key.as_ref(), acct.as_ref()], pid);
+    expect_key(pos, &k)?;
+    let (pk, pb) = Pubkey::find_program_address(&[b"payer"], pid);
+    expect_key(payer, &pk)?;
+    expect_key(sys, &system_program::ID)?;
+    let rent = Rent::get()?;
+    let cost = rent.minimum_balance(POS_LEN);
+    if payer.owner != &system_program::ID || payer.lamports() < cost + rent.minimum_balance(0) {
+        msg!("rent payer low: position opens at first claim");
+        return Ok(false);
+    }
+    invoke_signed(
+        &system_instruction::create_account(payer.key, pos.key, cost, POS_LEN as u64, pid),
+        &[payer.clone(), pos.clone(), sys.clone()],
+        &[&[b"payer", &[pb]], &[b"pos", market.key.as_ref(), acct.as_ref(), &[b]]],
+    )?;
+    let mut d = pos.try_borrow_mut_data()?;
+    d[..8].copy_from_slice(TAG_POS);
+    d[8..16].copy_from_slice(&m.to_le_bytes());
+    d[16..24].copy_from_slice(&0u64.to_le_bytes());
+    Ok(true)
+}
+
 /// Transfer hook execute(amount): [0 source, 1 d mint, 2 destination, 3 authority, 4 metas,
-///  5 market w, 6 x mint, 7 source pos w, 8 destination pos w]. Only runs inside a real Token-2022
+///  5 market w, 6 x mint, 7 source pos w, 8 destination pos w, 9 rent payer w, 10 system].
+/// Only runs inside a real Token-2022
 /// transfer (the source account's `transferring` flag is set), after balances moved.
 fn hook_execute(pid: &Pubkey, a: &[AccountInfo], amount: u64) -> ProgramResult {
-    let [src, dm, dst, _authority, metas, market, x, spos, dpos, ..] = a else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let [src, dm, dst, _authority, metas, market, x, spos, dpos, payer, sys, ..] = a else { return Err(ProgramError::NotEnoughAccountKeys) };
     let (mk_key, _) = Pubkey::find_program_address(&[b"extra-account-metas", dm.key.as_ref()], pid);
     expect_key(metas, &mk_key)?;
     let (s_owner, s_post) = {
@@ -280,8 +353,12 @@ fn hook_execute(pid: &Pubkey, a: &[AccountInfo], amount: u64) -> ProgramResult {
     let same = src.key == dst.key;
     let s_pre = if same { s_post } else { s_post.checked_add(amount).ok_or(E::Math)? };
     let d_pre = if same { d_post } else { d_post.saturating_sub(amount) };
-    accrue(pid, market, spos, &s_owner, s_pre, mk.m_base, m)?;
-    accrue(pid, market, dpos, &d_owner, d_pre, mk.m_base, m)?;
+    accrue(pid, market, spos, src.key, s_pre, mk.m_base, m)?;
+    if dpos.lamports() == 0 {
+        open_pos(pid, market, dst.key, dpos, payer, sys, m)?;
+    } else {
+        accrue(pid, market, dpos, dst.key, d_pre, mk.m_base, m)?;
+    }
     msg!("event:transfer d={} from={} to={} amount={} m={}", dm.key, s_owner, d_owner, amount, m);
     Ok(())
 }
@@ -314,16 +391,17 @@ fn settle<'a>(
     x: &AccountInfo<'a>,
     p: &AccountInfo<'a>,
     ux: &AccountInfo<'a>,
+    acct: &Pubkey,
     d_bal: u64,
     vault: &AccountInfo<'a>,
     auth: &AccountInfo<'a>,
     sys: &AccountInfo<'a>,
 ) -> Result<u64, ProgramError> {
-    let (pk, pb) = Pubkey::find_program_address(&[b"pos", market.key.as_ref(), user.key.as_ref()], pid);
+    let (pk, pb) = Pubkey::find_program_address(&[b"pos", market.key.as_ref(), acct.as_ref()], pid);
     expect_key(pos, &pk)?;
     let mut paid = 0u64;
     if pos.lamports() == 0 {
-        create_pda(user, pos, sys, pid, &[b"pos", market.key.as_ref(), user.key.as_ref(), &[pb]], POS_LEN)?;
+        create_pda(user, pos, sys, pid, &[b"pos", market.key.as_ref(), acct.as_ref(), &[pb]], POS_LEN)?;
         pos.try_borrow_mut_data()?[..8].copy_from_slice(TAG_POS);
     } else {
         if pos.owner != pid || &pos.try_borrow_data()?[..8] != TAG_POS {
@@ -384,7 +462,7 @@ fn position(pid: &Pubkey, a: &[AccountInfo], tag: u8, amount: u64) -> ProgramRes
     if tag == ix::REDEEM && !matured {
         return Err(E::NotMatured.into());
     }
-    settle(pid, &cfg, &mk, m, market, user, pos, x, p, ux, d_bal, vault, auth, sys)?;
+    settle(pid, &cfg, &mk, m, market, user, pos, x, p, ux, ud.key, d_bal, vault, auth, sys)?;
     let signer_seeds: &[&[u8]] = &[b"auth", &[cfg.auth_bump]];
     match tag {
         ix::SPLIT => {
@@ -433,7 +511,7 @@ fn claim(pid: &Pubkey, a: &[AccountInfo]) -> ProgramResult {
     let d_bal = check_ta(ud, dm.key, user.key)?;
     check_ta(vault, x.key, auth.key)?;
     let (m, _) = effective_m(market, &mut mk, x)?;
-    let paid = settle(pid, &cfg, &mk, m, market, user, pos, x, p, ux, d_bal, vault, auth, sys)?;
+    let paid = settle(pid, &cfg, &mk, m, market, user, pos, x, p, ux, ud.key, d_bal, vault, auth, sys)?;
     if paid == 0 {
         msg!("event:claim x={} user={} raw=0 m={}", x.key, user.key, m);
     }

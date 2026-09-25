@@ -2,7 +2,7 @@
 // Runs as a test (asserts balances and error codes) on localnet, and as the devnet verification.
 // Usage: bun scripts/vault-verify.ts <rpc> <deployment.json> [SYMBOL]
 import { Connection, Keypair, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction, type TransactionInstruction } from "@solana/web3.js";
-import { getMintLen, createInitializeMint2Instruction, createTransferCheckedWithTransferHookInstruction } from "@solana/spl-token";
+import { ExtensionType, getAccountLen, getMintLen, createInitializeMint2Instruction, createInitializeAccount3Instruction, createTransferCheckedWithTransferHookInstruction } from "@solana/spl-token";
 import { TransactionInstruction as TxIx, PublicKey } from "@solana/web3.js";
 import fs from "fs";
 import { CouponVault, TOKEN_2022, X_DECIMALS, USDC_DECIMALS, swapOut, couponClaim, shareValue, toRaw, fromRaw, explainError, type Deployment } from "../src/lib/vault/sdk";
@@ -23,7 +23,8 @@ const sendTx = async (tx: () => Transaction, signers: Keypair[]) => {
 const load = (f: string) => Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(f, "utf8"))));
 const admin = load(".keys/deployer.json");
 const user = load(".keys/tester.json");
-const receiver = load(".keys/receiver.json");
+// a new receiver every run, so it starts with no coupons (it opens a position first to hold an old snapshot)
+const receiver = Keypair.generate();
 const dep: Deployment = JSON.parse(fs.readFileSync(depPath, "utf8"));
 const v = new CouponVault(dep);
 const m = v.find(symbol);
@@ -74,6 +75,10 @@ if (lastUsdc === null || Date.now() / 1000 - lastUsdc > 3600) {
   ok((await pos()).usdc - u0.usdc === toRaw(1000, USDC_DECIMALS), "faucet paid 1,000 test USDC");
 }
 await expectFail("faucet again (cooldown)", v.faucet(user.publicKey, k.x), 4);
+// repeated runs inside the faucet cooldown: top the tester up through the faucet's admin mint (test tokens)
+if ((await pos()).x < toRaw(60, X_DECIMALS)) {
+  await send("admin tops up 100 test x", [v.adminMint(admin.publicKey, k.x, v.ata(k.x, user.publicKey), toRaw(100, X_DECIMALS))], admin);
+}
 
 p0 = await pos();
 await send(`split 50 ${symbol}`, v.split(user.publicKey, m, toRaw(50, X_DECIMALS)));
@@ -153,6 +158,13 @@ if (k.pLp) {
     await sendTx(() => new Transaction().add(SystemProgram.transfer({ fromPubkey: admin.publicKey, toPubkey: receiver.publicKey, lamports: 0.02 * LAMPORTS_PER_SOL })), [admin]);
   }
   const rpos = () => v.readPosition(conn, m, receiver.publicKey);
+  // built the way a wallet builds it: spl-token resolves the hook accounts from the mint's ExtraAccountMetaList
+  const walletTransfer = (from: Keypair, fromAcct: PublicKey, toAcct: PublicKey, raw: bigint) =>
+    createTransferCheckedWithTransferHookInstruction(conn, fromAcct, k.d, toAcct, from.publicKey, raw, X_DECIMALS, [], "confirmed", TOKEN_2022);
+  const readPos = async (acct: PublicKey) => {
+    const a = await conn.getAccountInfo(v.pos(k.market, acct), "confirmed");
+    return a ? { snap: Number(a.data.readBigUInt64LE(8)) / 1e12, owed: a.data.readBigUInt64LE(16) } : null;
+  };
   // receiver opens a position first, so it holds an OLD snapshot: the case a naive design would over pay
   await send("receiver opens position", v.claim(receiver.publicKey, m), receiver);
   await send("tester claim (snapshot now)", v.claim(user.publicKey, m));
@@ -163,8 +175,7 @@ if (k.pLp) {
   const mB = mk.multiplier!;
   const tBefore = await pos();
   const sendAmt = toRaw(10, X_DECIMALS);
-  // built the way a wallet builds it: spl-token resolves the hook accounts from the mint's ExtraAccountMetaList
-  const tix = await createTransferCheckedWithTransferHookInstruction(conn, v.ata(k.d, user.publicKey), k.d, v.ata(k.d, receiver.publicKey), user.publicKey, sendAmt, X_DECIMALS, [], "confirmed", TOKEN_2022);
+  const tix = await walletTransfer(user, v.ata(k.d, user.publicKey), v.ata(k.d, receiver.publicKey), sendAmt);
   await send(`transfer 10 d${symbol} to receiver`, [v.ensureAta(user.publicKey, k.d, receiver.publicKey), tix]);
   const tAfter = await pos();
   const bookedExp = couponClaim(tBefore.d, mk.mBase!, mA, mB);
@@ -177,22 +188,66 @@ if (k.pLp) {
   await send("sender claim after transfer", v.claim(user.publicKey, m));
   const t1 = await pos();
   ok(t1.x - t0.x === bookedExp, `sender claimed the ${fromRaw(bookedExp, 8)} raw it earned before sending`);
-  await send("admin bump 3", [v.bump(admin.publicKey, m, mB * ratio)], admin);
+
+  // a brand new wallet that never touched the program: the hook opens its position on arrival
+  const fresh = Keypair.generate();
+  const freshAta = v.ata(k.d, fresh.publicKey);
   mk = await v.readMarket(conn, m);
-  const recvExp = couponClaim(sendAmt, mk.mBase!, mB, mk.multiplier!);
+  const mC = mk.multiplier!;
+  const payerBefore = await conn.getBalance(v.rentPayer, "confirmed");
+  const fix = await walletTransfer(user, v.ata(k.d, user.publicKey), freshAta, toRaw(7, X_DECIMALS));
+  await send(`transfer 7 d${symbol} to a fresh wallet`, [v.ensureAta(user.publicKey, k.d, fresh.publicKey), fix]);
+  const fp = await readPos(freshAta);
+  ok(!!fp && Math.abs(fp.snap - mC) < 1e-12 && fp.owed === 0n, `hook opened the fresh wallet's position at the current index ${fp?.snap}`);
+  ok((await conn.getBalance(v.rentPayer, "confirmed")) < payerBefore, "position rent came from the protocol rent payer");
+
+  // one owner with two d accounts: the second is a plain token account, not the associated one
+  const aux = Keypair.generate();
+  const auxLen = getAccountLen([ExtensionType.TransferHookAccount]);
+  const auxRent = await conn.getMinimumBalanceForRentExemption(auxLen);
+  const auxSig = await sendTx(() => new Transaction().add(
+    SystemProgram.createAccount({ fromPubkey: user.publicKey, newAccountPubkey: aux.publicKey, space: auxLen, lamports: auxRent, programId: TOKEN_2022 }),
+    createInitializeAccount3Instruction(aux.publicKey, k.d, user.publicKey, TOKEN_2022),
+  ), [user, aux]);
+  console.log("tester opens a second d account".padEnd(26), auxSig);
+  results.push({ action: "tester opens a second d account", sig: auxSig });
+  const aix = await walletTransfer(user, v.ata(k.d, user.publicKey), aux.publicKey, toRaw(5, X_DECIMALS));
+  await send(`move 5 d${symbol} into the second account`, [aix]);
+
+  await send("admin bump 3", [v.bump(admin.publicKey, m, mC * ratio)], admin);
+  mk = await v.readMarket(conn, m);
+  const mD = mk.multiplier!;
+  const recvExp = couponClaim(sendAmt, mk.mBase!, mB, mD);
   r0 = await rpos();
   await send("receiver claim after next bump", v.claim(receiver.publicKey, m), receiver);
   r1 = await rpos();
   ok(r1.x - r0.x === recvExp && recvExp > 0n, `receiver claimed ${fromRaw(recvExp, 8)} raw for the bump while it held 10 d${symbol}`);
+
+  await sendTx(() => new Transaction().add(SystemProgram.transfer({ fromPubkey: admin.publicKey, toPubkey: fresh.publicKey, lamports: 0.01 * LAMPORTS_PER_SOL })), [admin]);
+  const freshExp = couponClaim(toRaw(7, X_DECIMALS), mk.mBase!, mC, mD);
+  await send("fresh wallet claims", v.claim(fresh.publicKey, m), fresh);
+  const fx = (await v.readPosition(conn, m, fresh.publicKey)).x;
+  ok(fx === freshExp && freshExp > 0n, `fresh wallet claimed exactly ${fromRaw(freshExp, 8)} raw for the bump after it received`);
+
+  const ataBal = (await pos()).d;
+  const expAta = couponClaim(ataBal, mk.mBase!, mC, mD);
+  const expAux = couponClaim(toRaw(5, X_DECIMALS), mk.mBase!, mC, mD);
+  const x0 = (await pos()).x;
+  await send("claim on the associated d account", v.claim(user.publicKey, m));
+  const x1 = (await pos()).x;
+  await send("claim on the second d account", v.claim(user.publicKey, m, aux.publicKey));
+  const x2 = (await pos()).x;
+  ok(x1 - x0 === expAta && x2 - x1 === expAux && expAux > 0n, `two accounts claimed exactly ${fromRaw(expAta, 8)} + ${fromRaw(expAux, 8)} raw`);
+  results.push({ action: "fresh wallet", note: fresh.publicKey.toBase58() }, { action: "second d account", note: aux.publicKey.toBase58() });
+
   // calling the hook directly (outside a Token-2022 transfer) is rejected
+  const hookKeys = v.hookAccounts(m, [v.ata(k.d, user.publicKey), v.ata(k.d, receiver.publicKey)]).slice(1, -1);
   const fake = new TxIx({ programId: v.vaultId, data: Buffer.concat([Buffer.from([105, 37, 101, 197, 75, 251, 102, 26]), Buffer.from(new BigUint64Array([10n ** 12n]).buffer)]), keys: [
     { pubkey: v.ata(k.d, user.publicKey), isSigner: false, isWritable: false }, { pubkey: k.d, isSigner: false, isWritable: false },
     { pubkey: v.ata(k.d, receiver.publicKey), isSigner: false, isWritable: false }, { pubkey: user.publicKey, isSigner: false, isWritable: false },
-    { pubkey: v.metas(k.d), isSigner: false, isWritable: false }, { pubkey: k.market, isSigner: false, isWritable: true }, { pubkey: k.x, isSigner: false, isWritable: false },
-    { pubkey: v.pos(k.market, user.publicKey), isSigner: false, isWritable: true }, { pubkey: v.pos(k.market, receiver.publicKey), isSigner: false, isWritable: true },
+    { pubkey: v.metas(k.d), isSigner: false, isWritable: false }, ...hookKeys,
   ] });
   await expectFail("hook called outside a transfer", [fake], 2);
-  void PublicKey;
 }
 
 // a fake coupon (mint not controlled by coupon_vault) must not get a pool

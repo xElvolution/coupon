@@ -1,0 +1,203 @@
+{
+  "version": "0.1.0",
+  "name": "coupon_faucet",
+  "instructions": [
+    {
+      "name": "initConfig",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "system",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
+      "name": "drip",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "drip",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "faucet",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "token",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "system",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      }
+    },
+    {
+      "name": "adminMint",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "dst",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "faucet",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "token",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 2
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 1,
+      "name": "BadAccount",
+      "msg": "Account mismatch. Refresh and try again."
+    },
+    {
+      "code": 2,
+      "name": "Unauthorized",
+      "msg": "Not authorized for this action."
+    },
+    {
+      "code": 3,
+      "name": "Math",
+      "msg": "Math overflow."
+    },
+    {
+      "code": 4,
+      "name": "Cooldown",
+      "msg": "Faucet cooldown: one claim per token per hour."
+    },
+    {
+      "code": 5,
+      "name": "Matured",
+      "msg": "Coupon matured. This market no longer accepts new positions."
+    },
+    {
+      "code": 6,
+      "name": "NotMatured",
+      "msg": "Not matured yet. Shares redeem after the 12 month maturity."
+    },
+    {
+      "code": 7,
+      "name": "ZeroAmount",
+      "msg": "Enter an amount above zero."
+    },
+    {
+      "code": 8,
+      "name": "NoMultiplier",
+      "msg": "This mint has no ScaledUiAmount multiplier."
+    },
+    {
+      "code": 9,
+      "name": "Insufficient",
+      "msg": "Insufficient balance."
+    },
+    {
+      "code": 10,
+      "name": "BadData",
+      "msg": "Malformed instruction."
+    },
+    {
+      "code": 11,
+      "name": "Slippage",
+      "msg": "Slippage exceeded. The pool moved; try again or widen tolerance."
+    },
+    {
+      "code": 12,
+      "name": "EmptyPool",
+      "msg": "This coupon has no liquidity pool yet."
+    },
+    {
+      "code": 13,
+      "name": "NotCoupon",
+      "msg": "Not a genuine coupon_vault coupon."
+    },
+    {
+      "code": 14,
+      "name": "AlreadyInitialized",
+      "msg": "Already initialized."
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "5SYQ5Pp1AfR2QRLQy4WFyqbHdrVtECJ1GdkwwPepEDRE",
+    "encoding": "u8 tag, then little endian args; no Anchor discriminators"
+  }
+}

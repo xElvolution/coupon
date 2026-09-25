@@ -1,0 +1,59 @@
+{
+  "at": "2026-09-25T17:07:39.823Z",
+  "rows": [
+    {
+      "symbol": "SPYx",
+      "mainnet": 1.005714560286254,
+      "devnet": 1.0166148629253613,
+      "action": "devnet ahead"
+    },
+    {
+      "symbol": "MSFTx",
+      "mainnet": 1.0059033904787456,
+      "devnet": 1.0059033904787456,
+      "action": "in sync"
+    },
+    {
+      "symbol": "QQQx",
+      "mainnet": 1.0034560758968376,
+      "devnet": 1.0034560758968376,
+      "action": "in sync"
+    },
+    {
+      "symbol": "AAPLx",
+      "mainnet": 1.0032690125398187,
+      "devnet": 1.0032690125398187,
+      "action": "in sync"
+    },
+    {
+      "symbol": "METAx",
+      "mainnet": 1.0028515433272898,
+      "devnet": 1.0028515433272898,
+      "action": "in sync"
+    },
+    {
+      "symbol": "GOOGLx",
+      "mainnet": 1.0023772500603487,
+      "devnet": 1.0023772500603487,
+      "action": "in sync"
+    },
+    {
+      "symbol": "NVDAx",
+      "mainnet": 1.001701196801074,
+      "devnet": 1.001701196801074,
+      "action": "in sync"
+    },
+    {
+      "symbol": "TSLAx",
+      "mainnet": 1,
+      "devnet": 1,
+      "action": "in sync"
+    },
+    {
+      "symbol": "AMZNx",
+      "mainnet": 1,
+      "devnet": 1,
+      "action": "in sync"
+    }
+  ]
+}

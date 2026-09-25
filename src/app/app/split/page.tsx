@@ -53,7 +53,7 @@ function SplitInner() {
   };
   const claim = async () => {
     if (!v.vault || !v.owner || !cm) return;
-    await v.run(`Claim d${x} income`, v.vault.claim(v.owner, cm.dep), (sig) => ({
+    await v.run(`Claim d${x} income`, (pos.dAccounts.filter((a) => a.claimable > 0n).length ? pos.dAccounts.filter((a) => a.claimable > 0n) : [{ key: v.vault.ata(v.vault.keys(cm.dep).d, v.owner) }]).flatMap((a, i) => { const ix = v.vault!.claim(v.owner!, cm.dep, a.key); return i === 0 ? [v.vault!.ensureAta(v.owner!, v.vault!.keys(cm.dep).x, v.owner!), ...ix] : ix; }), (sig) => ({
       action: "claim", symbol: x, sig, at: Date.now(), title: "Income claimed",
       lines: [["Coupon", `${units(fromRaw(pos.d, X_DECIMALS), 4)} d${x}`], ["Multiplier now", mult?.toFixed(9) ?? "…"], ["Received", `${units(claimable, 8)} ${x}`]],
     }));

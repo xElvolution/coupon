@@ -8,10 +8,15 @@
     "dev": "next dev --port 3460",
     "build": "next build",
     "start": "next start --port 3460",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "bun test test",
+    "idl": "bun scripts/gen-idl.ts"
   },
   "packageManager": "bun@1.4.2",
-  "trustedDependencies": ["sharp", "unrs-resolver"],
+  "trustedDependencies": [
+    "sharp",
+    "unrs-resolver"
+  ],
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "@solana/spl-token": "^0.4.15",

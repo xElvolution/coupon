@@ -1,0 +1,741 @@
+{
+  "version": "0.1.0",
+  "name": "coupon_market",
+  "instructions": [
+    {
+      "name": "initConfig",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "usdcMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "system",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [],
+      "discriminant": {
+        "type": "u8",
+        "value": 0
+      }
+    },
+    {
+      "name": "initPool",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultMarket",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "usdcMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lpMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "adminD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "adminUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "adminLp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "token",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "system",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "usdcAmount",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 1
+      },
+      "docs": [
+        "remaining accounts: hook accounts for d"
+      ]
+    },
+    {
+      "name": "swapSell",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "dMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "usdcMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "poolD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lpMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userLp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "token",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "system",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultMarket",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultPos",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "xMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "userX",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultX",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultAuth",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "dIn",
+          "type": "u64"
+        },
+        {
+          "name": "minUsdcOut",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 2
+      },
+      "docs": [
+        "remaining accounts: hook accounts for d pools"
+      ]
+    },
+    {
+      "name": "swapBuy",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "dMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "usdcMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "poolD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lpMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userLp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "token",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "system",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultMarket",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultPos",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "xMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "userX",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultX",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultAuth",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "usdcIn",
+          "type": "u64"
+        },
+        {
+          "name": "minDOut",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 3
+      },
+      "docs": [
+        "remaining accounts: hook accounts for d pools"
+      ]
+    },
+    {
+      "name": "addLiquidity",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "dMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "usdcMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "poolD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lpMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userLp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "token",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "system",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultMarket",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultPos",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "xMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "userX",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultX",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultAuth",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "dIn",
+          "type": "u64"
+        },
+        {
+          "name": "usdcMax",
+          "type": "u64"
+        },
+        {
+          "name": "minLp",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 4
+      },
+      "docs": [
+        "remaining accounts: hook accounts for d pools"
+      ]
+    },
+    {
+      "name": "removeLiquidity",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "dMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "usdcMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "poolD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lpMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userD",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userUsdc",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userLp",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "token",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "system",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "vaultMarket",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultPos",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "xMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "pMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "userX",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultX",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "vaultAuth",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "lpIn",
+          "type": "u64"
+        },
+        {
+          "name": "minD",
+          "type": "u64"
+        },
+        {
+          "name": "minUsdc",
+          "type": "u64"
+        }
+      ],
+      "discriminant": {
+        "type": "u8",
+        "value": 5
+      },
+      "docs": [
+        "remaining accounts: hook accounts for d pools"
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 1,
+      "name": "BadAccount",
+      "msg": "Account mismatch. Refresh and try again."
+    },
+    {
+      "code": 2,
+      "name": "Unauthorized",
+      "msg": "Not authorized for this action."
+    },
+    {
+      "code": 3,
+      "name": "Math",
+      "msg": "Math overflow."
+    },
+    {
+      "code": 4,
+      "name": "Cooldown",
+      "msg": "Faucet cooldown: one claim per token per hour."
+    },
+    {
+      "code": 5,
+      "name": "Matured",
+      "msg": "Coupon matured. This market no longer accepts new positions."
+    },
+    {
+      "code": 6,
+      "name": "NotMatured",
+      "msg": "Not matured yet. Shares redeem after the 12 month maturity."
+    },
+    {
+      "code": 7,
+      "name": "ZeroAmount",
+      "msg": "Enter an amount above zero."
+    },
+    {
+      "code": 8,
+      "name": "NoMultiplier",
+      "msg": "This mint has no ScaledUiAmount multiplier."
+    },
+    {
+      "code": 9,
+      "name": "Insufficient",
+      "msg": "Insufficient balance."
+    },
+    {
+      "code": 10,
+      "name": "BadData",
+      "msg": "Malformed instruction."
+    },
+    {
+      "code": 11,
+      "name": "Slippage",
+      "msg": "Slippage exceeded. The pool moved; try again or widen tolerance."
+    },
+    {
+      "code": 12,
+      "name": "EmptyPool",
+      "msg": "This coupon has no liquidity pool yet."
+    },
+    {
+      "code": 13,
+      "name": "NotCoupon",
+      "msg": "Not a genuine coupon_vault coupon."
+    },
+    {
+      "code": 14,
+      "name": "AlreadyInitialized",
+      "msg": "Already initialized."
+    }
+  ],
+  "metadata": {
+    "origin": "shank",
+    "address": "EPCXp2gEtwa6c28x19XgM2oV9k3T5pLsUiAzEaJUc3WN",
+    "encoding": "u8 tag, then little endian args; no Anchor discriminators"
+  }
+}

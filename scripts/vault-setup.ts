@@ -60,6 +60,18 @@ if (!(await conn.getAccountInfo(v.config))) await send("vault init_config", [v.i
 if (!(await conn.getAccountInfo(v.marketConfig))) await send("market init_config", [v.initMarketConfig(admin.publicKey)]);
 if (!(await conn.getAccountInfo(v.faucetConfig))) await send("faucet init_config", [v.initFaucetConfig(admin.publicKey)]);
 
+// protocol rent payer for positions the transfer hook opens (a system account PDA of coupon_vault)
+const PAYER_SOL = Number(process.env.PAYER_SOL ?? "0.3");
+if ((await conn.getBalance(v.rentPayer)) < 0.05 * 1e9) {
+  await send(`fund rent payer ${PAYER_SOL} SOL`, [SystemProgram.transfer({ fromPubkey: admin.publicKey, toPubkey: v.rentPayer, lamports: Math.round(PAYER_SOL * 1e9) })]);
+}
+// bring every existing market's hook account list to the current layout (after an upgrade)
+const METAS_LEN = 8 + 4 + 4 + 6 * 35;
+for (const m of dep.markets) {
+  const info = await conn.getAccountInfo(v.metas(new PublicKey(m.dMint)));
+  if (info && info.data.length !== METAS_LEN) await send(`sync_metas ${m.symbol}${m.testOnly ? " (short maturity)" : ""}`, [v.syncMetas(admin.publicKey, m)]);
+}
+
 for (const mk of markets) {
   let m = dep.markets.find((k) => k.symbol === mk.x);
   if (!m) {

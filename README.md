@@ -37,21 +37,22 @@ flowchart LR
   U -->|split x| V[coupon_vault]
   V -->|mint p + d, 1 of each per share| PD[(p mint<br/>d mint with TransferHook = coupon_vault)]
   U -->|recombine p + d / claim / redeem p after maturity| V
-  A[Admin] -->|bump multiplier| V
+  K[Keeper, daily cron] -->|bump when the mainnet multiplier moved| V
   V -->|UpdateMultiplier CPI, signed by auth PDA| X
   U -->|sell / buy / add / remove liquidity, d or p| M[coupon_market]
   M -->|claim CPI for the trader before d moves| V
   M -->|reads vault market: genuine p or d?| V
   M --- P[(pool PDAs: d/USDC and p/USDC reserves, LP mints)]
   U -->|any d transfer, wallet or pool| T[Token-2022]
-  T -->|execute hook: book sender income, reset both snapshots| V
+  T -->|execute hook: book sender income, open receiver position| V
+  V -->|position rent, signed by payer PDA| R[(rent payer PDA)]
 ```
 
 Accounts (PDA seeds):
 
 | Program | Accounts |
 |---|---|
-| coupon_vault | `config` (admin), `auth` (mint and multiplier authority), `market`+xMint (p/d mints, base multiplier, frozen final multiplier, maturity), `pos`+market+owner (multiplier snapshot and income owed), `extra-account-metas`+dMint (the hook's account list) |
+| coupon_vault | `config` (admin), `auth` (mint and multiplier authority), `market`+xMint (p/d mints, base multiplier, frozen final multiplier, maturity), `pos`+market+d token account (multiplier snapshot and income owed, one per d token account), `payer` (system account that pays rent for positions the hook opens; devnet `CoXG2GgThVv3JB4aufM32RCgUaqFi8bEELgfU8mVMAdK`), `extra-account-metas`+dMint (the hook's account list) |
 | coupon_market | `config` (admin, USDC mint), `pool`+mint for each p and d mint (reserves, LP mint; the pool PDA owns both reserve accounts and mints LP) |
 | coupon_faucet | `config`, `faucet` (mint authority of the test mints), `drip`+mint+user (last claim time) |
 
@@ -59,15 +60,17 @@ Instruction flow:
 
 1. **Split**: the user deposits x into the vault and receives `x_raw x m / m_base` p and d.
    p keeps the base units (a fixed number of shares at maturity); d collects every bump.
-2. **Bump**: the admin mirrors the real mainnet multiplier onto the test mint
-   (`UpdateMultiplier` CPI signed by the vault auth PDA).
+2. **Bump**: the keeper mirrors the real mainnet multiplier onto the test mint
+   (`UpdateMultiplier` CPI signed by the vault auth PDA; see Keeper below).
 3. **Claim**: a d holder receives `owed + d x (1/snapshot - 1/m) x m_base` raw x, capped at the
    vault balance minus the share liability, so p holders are always fully covered.
    The snapshot resets on every claim.
 4. **Transfer hook**: every d transfer (Phantom or any wallet, and every pool move) makes
-   Token-2022 call coupon_vault `execute`. It books the sender's income up to now into
-   `owed`, books the receiver's income on its balance before the transfer, and resets both
-   snapshots. A holder therefore only earns bumps that happen while it holds the coupon.
+   Token-2022 call coupon_vault `execute`. It books the sender account's income up to now
+   into `owed` and settles the receiver account the same way. If the receiver account has no
+   position yet, the hook creates it (rent from the `payer` PDA) with the current multiplier
+   as its snapshot. A holder therefore only earns bumps that happen while it holds the coupon,
+   from the moment the coupons arrive.
    The hook only runs inside a real transfer (it checks the source account's `transferring`
    flag), and the d mints have no hook authority, so nobody can repoint it.
 5. **Trade**: `coupon_market` runs the same constant product code for d/USDC and p/USDC
@@ -79,10 +82,13 @@ Instruction flow:
    splits stop, the final coupon claim pays up to maturity, and p redeems for its base units.
    **Recombine**: p + d burn back into x at any time.
 
-A receiver that has never opened a position (no split or claim in that market) has no
-`pos` account for the hook to update, and the hook cannot create accounts. Its coupons
-start earning at its first claim or split; the income in between stays in the vault as
-surplus. It can never be claimed twice.
+Positions are keyed by d token account, not by owner, because the hook only sees token
+accounts. An owner with several d accounts (an ATA plus any other account) has one position
+per account; the app sums them and its claim button claims every account with income, each
+exactly. The hook account list is `[market w, x mint, pos(source) w, pos(destination) w,
+payer w, System Program]`; `sync_metas` (ix 10, admin) rewrites the list of an existing d
+mint after an upgrade, so no mint had to be recreated. If the payer ever runs dry the
+transfer still succeeds and the receiver's position opens at its first claim instead.
 
 ## Program
 
@@ -123,6 +129,7 @@ Tests:
 ```
 cd program
 cargo test                                   # math, maturity gate (clock values), transfer accrual, parsing
+cd .. && bun run test && cd program          # SDK encodings match idl/*.json
 for p in coupon_vault coupon_market coupon_faucet; do
   cargo-build-sbf --manifest-path programs/$p/Cargo.toml --sbf-out-dir target/deploy
 done
@@ -141,7 +148,9 @@ bun scripts/vault-maturity.ts http://127.0.0.1:8899 .deploy/localnet.json 20
 split, slippage reject, sell, bump, claim, recombine, buy, add and remove liquidity,
 p buy and sell on the share pool, a wallet to wallet d transfer built with spl-token's
 hook resolver (the path wallets use) followed by claims that show the receiver cannot
-claim the bump before it held the coupons, a direct hook call reject, fake coupon pool
+claim the bump before it held the coupons, a transfer into a brand new wallet (the hook
+opens its position at the current index, rent paid by the payer PDA) then a bump and its
+exact claim, one owner with two d token accounts claiming each exactly, a direct hook call reject, fake coupon pool
 reject, redeem before maturity reject. `vault-maturity` creates the short maturity
 market, splits, bumps, waits for maturity with the real chain clock, then makes the
 final coupon claim and redeems every share. Devnet signatures:
@@ -152,13 +161,50 @@ Program upgrades use the deployer as upgrade authority (`solana program deploy
 --program-id <id> --buffer <keypair>`), and upload buffers are closed afterwards.
 Program data rent on devnet: vault 0.728 SOL, market 0.745 SOL, faucet 0.509 SOL.
 
+## Keeper
+
+`src/lib/vault/keeper.ts` reads every mainnet xStock multiplier and the matching devnet
+test mint, and sends the admin `bump` only when mainnet is higher. It runs two ways:
+
+- `bun scripts/keeper.ts <devnet rpc> src/lib/vault/deployment.devnet.json [markets api] [--dry]`
+  (admin key from `COUPON_ADMIN_KEY` or `.keys/deployer.json`).
+- `GET /api/keeper`, called daily by Vercel cron (`vercel.json`). It needs
+  `Authorization: Bearer $CRON_SECRET` (401 otherwise, 503 when unset). The admin key only
+  comes from the server env var `COUPON_ADMIN_KEY` (JSON byte array); without it, or with
+  `?dry=1`, the route reports what it would do and signs nothing.
+
+Last run: no bumps needed. Eight markets equal mainnet; devnet SPYx is ahead because the
+verification script bumps it (`src/lib/vault/deployment.devnet.keeper.json`).
+
+## IDL
+
+`idl/coupon_vault.json`, `idl/coupon_market.json`, `idl/coupon_faucet.json` are Shank style
+IDLs (u8 instruction tag, little endian args, accounts with signer and writable flags)
+generated from the instruction docs in each `lib.rs` by `bun run idl`. `test/idl.test.ts`
+builds every SDK instruction and checks program id, tag, data length, account count and
+flags against them, plus the hook account layout.
+
+## v1 (deprecated)
+
+The first devnet markets (owner keyed positions, mints listed in git history at
+`8613e2f:src/lib/vault/deployment.devnet.json`) are deprecated and hidden from the app.
+Their upload buffers are closed, and all 36 v1 token accounts held by our keys were
+burned and closed (0.054 SOL rent back). Pool reserve accounts owned by v1 pool PDAs and
+the v1 market accounts stay: closing them needs a `close_market` admin instruction, which
+was left out on purpose because it would strand any outside holder and add an admin power.
+The owner keyed `pos` accounts from before the per account layout are orphaned (the
+program no longer reads them).
+
 ## Remaining gaps
 
-- Test tokens only; nothing trades on mainnet, and the admin mirrors multipliers by hand.
-- No Anchor IDL; the TypeScript SDK is the client interface.
-- A receiver with no position account starts earning at its first claim or split (see above).
-- Holdings split across several d token accounts of one owner settle one account at a
-  time, which can only under pay that owner, never over pay.
+- Test tokens only; nothing trades on mainnet. The keeper copies mainnet multipliers onto
+  devnet mints once a day (Vercel Hobby cron limit).
+- The rent payer PDA can be drained by dust transfers to fresh accounts, but each one costs
+  the sender more in token account rent than it drains, and an empty payer only delays a
+  position to the receiver's first claim. The empty payer path was reviewed in code but not
+  exercised on chain.
+- A token account owner change (SetAuthority) moves the position with the account, which
+  is the intended behavior but is not surfaced in the app.
 
 ## Run
 
@@ -169,9 +215,15 @@ bun run start --port 3460
 ```
 
 Env: see `.env.example` (`NEXT_PUBLIC_SOLANA_RPC`, optional `NEXT_PUBLIC_COUPON_DEPLOYMENT`,
-`SOLANA_RPC`, `PYTH_API_KEY`, `PYTH_HERMES_URL`).
+`SOLANA_RPC`, `PYTH_API_KEY`, `PYTH_HERMES_URL`, keeper: `CRON_SECRET`, `COUPON_ADMIN_KEY`,
+`KEEPER_RPC`).
 
-APIs: `/api/markets`, `/api/pyth`, `/api/chain?x=SPYx`, `/api/holdings?owner=<address>`.
+APIs: `/api/markets`, `/api/pyth`, `/api/chain?x=SPYx`, `/api/holdings?owner=<address>`,
+`/api/keeper` (cron, bearer protected).
+
+On phones the tab bar holds Markets, Split, Trade, Portfolio and Faucet. The replay of every
+real multiplier bump lives behind the Proof card at the top of Markets and the Verify link
+on each market (`/app/replay?x=<asset>`); desktop keeps Replay in the top nav.
 
 ## Deploy on Vercel
 
@@ -181,3 +233,5 @@ APIs: `/api/markets`, `/api/pyth`, `/api/chain?x=SPYx`, `/api/holdings?owner=<ad
    optionally `SOLANA_RPC` and `PYTH_API_KEY`.
 3. The devnet deployment JSON is committed, so the app points at the programs above
    with no extra config. Chain read caches go to `/tmp` on Vercel.
+4. For the keeper cron set `CRON_SECRET` and `COUPON_ADMIN_KEY` (the admin keypair as a
+   JSON byte array, server only). `vercel.json` schedules `/api/keeper` daily.

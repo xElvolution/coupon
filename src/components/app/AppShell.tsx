@@ -11,7 +11,7 @@ const NAV = [
   { href: "/app/split", label: "Split", icon: "M12 3v6M12 9l-6 6M12 9l6 6M4 19h4M16 19h4" },
   { href: "/app/trade", label: "Trade", icon: "M7 7h13l-3-3M17 17H4l3 3" },
   { href: "/app/portfolio", label: "Portfolio", icon: "M4 7h16v12H4zM8 7V5h8v2" },
-  { href: "/app/replay", label: "Replay", icon: "M4 12a8 8 0 1 0 3-6.2M4 4v4h4M12 8v4l3 2" },
+  { href: "/app/replay", label: "Replay", icon: "M4 12a8 8 0 1 0 3-6.2M4 4v4h4M12 8v4l3 2", desktopOnly: true },
   { href: "/app/faucet", label: "Faucet", icon: "M12 3c3 4 6 7.2 6 10.5A6 6 0 0 1 6 13.5C6 10.2 9 7 12 3z" },
 ];
 
@@ -62,8 +62,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 md:pb-16">{children}</main>
       {/* mobile tab bar */}
       <nav className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-40 flex justify-around rounded-2xl border border-line-2 bg-surface/90 p-1.5 shadow-[0_10px_30px_-10px_rgba(0,0,0,.35)] backdrop-blur-md md:hidden">
-        {NAV.map((n) => (
-          <Link key={n.href} href={n.href} className={`relative flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[10px] ${active(n.href) ? "text-bg" : "text-dim"}`}>
+        {NAV.filter((n) => !("desktopOnly" in n)).map((n) => (
+          <Link key={n.href} href={n.href} className={`relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[10px] ${active(n.href) ? "text-bg" : "text-dim"}`}>
             {active(n.href) && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-xl bg-lime" />}
             <span className="relative"><Icon d={n.icon} /></span>
             <span className="relative">{n.label}</span>

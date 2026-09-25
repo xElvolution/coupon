@@ -3,7 +3,7 @@ import { Buffer } from "buffer";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, Transaction, type TransactionInstruction } from "@solana/web3.js";
-import { CouponVault, X_DECIMALS, USDC_DECIMALS, couponClaim, explainError, fromRaw, readScaledMultiplier, type MarketDeployment } from "@/lib/vault/sdk";
+import { CouponVault, TOKEN_2022, X_DECIMALS, USDC_DECIMALS, couponClaim, explainError, fromRaw, readScaledMultiplier, type MarketDeployment } from "@/lib/vault/sdk";
 import { DEPLOYMENT } from "@/lib/vault/deployment";
 
 export type ChainMarket = {
@@ -26,7 +26,7 @@ export type ChainMarket = {
   pPoolPrice: number | null;
 };
 /** owed: income the transfer hook booked when d moved; claimable includes it */
-export type ChainPosition = { x: bigint; p: bigint; d: bigint; lp: bigint; snap: number | null; owed: bigint; claimable: bigint };
+export type ChainPosition = { x: bigint; p: bigint; d: bigint; lp: bigint; snap: number | null; owed: bigint; claimable: bigint; dAccounts: { key: PublicKey; bal: bigint; claimable: bigint }[] };
 export type TxAction = "faucet" | "split" | "recombine" | "claim" | "sell" | "buy" | "redeem";
 export type TxReceipt = { action: TxAction; symbol: string; title: string; lines: [string, string][]; sig: string; at: number };
 export type TxState = { state: "idle" | "signing" | "confirming" | "ok" | "err"; label?: string; error?: string; receipt?: TxReceipt };
@@ -49,7 +49,7 @@ interface Ctx {
 }
 const VaultCtx = createContext<Ctx | null>(null);
 
-const EMPTY: ChainPosition = { x: 0n, p: 0n, d: 0n, lp: 0n, snap: null, owed: 0n, claimable: 0n };
+const EMPTY: ChainPosition = { x: 0n, p: 0n, d: 0n, lp: 0n, snap: null, owed: 0n, claimable: 0n, dAccounts: [] };
 const MK = 7; // market level accounts read per market
 const u64At = (b: Uint8Array | undefined, o: number) => (b && b.length >= o + 8 ? Buffer.from(b).readBigUInt64LE(o) : 0n);
 
@@ -89,7 +89,7 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
       const posKeys = owner
         ? deps.flatMap((m) => {
             const k = vault.keys(m);
-            return [vault.ata(k.x, owner), vault.ata(k.p, owner), vault.ata(k.d, owner), k.lp ? vault.ata(k.lp, owner) : vault.ata(k.d, owner), vault.pos(k.market, owner), vault.drip(k.x, owner)];
+            return [vault.ata(k.x, owner), vault.ata(k.p, owner), vault.ata(k.d, owner), k.lp ? vault.ata(k.lp, owner) : vault.ata(k.d, owner), vault.posOf(m, owner), vault.drip(k.x, owner)];
           }).concat([vault.ata(vault.usdc, owner), vault.drip(vault.usdc, owner)])
         : [];
       const all = [...mkKeys, ...posKeys];
@@ -141,9 +141,36 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
             snap,
             owed,
             claimable: owed + (snap && mm.mBase && mm.multiplier ? couponClaim(dBal, mm.mBase, snap, mm.multiplier) : 0n),
+            dAccounts: [],
           };
           nd[m.symbol] = drip ? Number(Buffer.from(drip).readBigInt64LE(8)) : null;
         });
+        // every d token account the owner holds (positions are per account; the portfolio sums them)
+        const dMints = new Map(deps.map((m) => [m.dMint, m.symbol]));
+        const tas = await connection.getTokenAccountsByOwner(owner, { programId: TOKEN_2022 }, "confirmed");
+        const byMarket: Record<string, { key: PublicKey; bal: bigint }[]> = {};
+        for (const t of tas.value) {
+          const data = Buffer.from(t.account.data);
+          const sym = dMints.get(new PublicKey(data.subarray(0, 32)).toBase58());
+          if (sym) (byMarket[sym] ??= []).push({ key: t.pubkey, bal: data.readBigUInt64LE(64) });
+        }
+        const flat = deps.flatMap((m) => (byMarket[m.symbol] ?? []).map((a) => ({ m, a })));
+        const posInfos = flat.length ? await connection.getMultipleAccountsInfo(flat.map(({ m, a }) => vault.pos(vault.keys(m).market, a.key)), "confirmed") : [];
+        flat.forEach(({ m, a }, i) => {
+          const mm = nm[m.symbol];
+          const pd = posInfos[i]?.data;
+          const sn = pd && pd.length >= 24 ? Number(pd.readBigUInt64LE(8)) / 1e12 : null;
+          const ow = pd && pd.length >= 24 ? pd.readBigUInt64LE(16) : 0n;
+          const c = ow + (sn && mm.mBase && mm.multiplier ? couponClaim(a.bal, mm.mBase, sn, mm.multiplier) : 0n);
+          np[m.symbol].dAccounts.push({ key: a.key, bal: a.bal, claimable: c });
+        });
+        for (const m of deps) {
+          const accts = np[m.symbol].dAccounts;
+          if (accts.length) {
+            np[m.symbol].d = accts.reduce((t, a) => t + a.bal, 0n);
+            np[m.symbol].claimable = accts.reduce((t, a) => t + a.claimable, 0n);
+          }
+        }
         const tail = base + deps.length * 6;
         setUsdc(u64At(infos[tail], 64));
         nd.USDC = infos[tail + 1] ? Number(Buffer.from(infos[tail + 1]!).readBigInt64LE(8)) : null;
