@@ -16,7 +16,9 @@ function load(): Deployment | null {
   }
   return (devnet as unknown as Deployment | null) ?? null;
 }
-export const DEPLOYMENT = load();
+// test only markets (the short maturity SPYx market) exist to exercise a code path; the app hides them
+const raw = load();
+export const DEPLOYMENT: Deployment | null = raw ? { ...raw, markets: raw.markets.filter((m) => !m.testOnly) } : null;
 export const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC || "https://api.devnet.solana.com";
 export const CLUSTER_PARAM = DEPLOYMENT?.cluster === "localnet" ? `?cluster=custom&customUrl=${encodeURIComponent(RPC_URL)}` : "?cluster=devnet";
 export const explorerTx = (sig: string) => `https://explorer.solana.com/tx/${sig}${CLUSTER_PARAM}`;

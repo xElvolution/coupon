@@ -66,8 +66,12 @@ if (lastDrip === null || Date.now() / 1000 - lastDrip > 3600) {
   await send(`faucet ${symbol}`, v.faucet(user.publicKey, k.x));
   const p1 = await pos();
   ok(p1.x - p0.x === toRaw(100, X_DECIMALS), "faucet paid 100 test " + symbol);
+}
+const lastUsdc = await v.readDrip(conn, v.usdc, user.publicKey);
+if (lastUsdc === null || Date.now() / 1000 - lastUsdc > 3600) {
+  const u0 = await pos();
   await send("faucet USDC", v.faucet(user.publicKey, v.usdc));
-  ok((await pos()).usdc - p1.usdc === toRaw(1000, USDC_DECIMALS), "faucet paid 1,000 test USDC");
+  ok((await pos()).usdc - u0.usdc === toRaw(1000, USDC_DECIMALS), "faucet paid 1,000 test USDC");
 }
 await expectFail("faucet again (cooldown)", v.faucet(user.publicKey, k.x), 4);
 

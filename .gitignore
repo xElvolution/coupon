@@ -8,3 +8,4 @@ program/target/
 .deploy/localnet*
 AGENTS.md
 .next-*/
+.deploy/devnet-*
