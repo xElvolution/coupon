@@ -1,5 +1,6 @@
 "use client";
 import Sk from "@/components/Sk";
+import { useMounted } from "@/components/useMounted";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useMarkets } from "@/components/useMarkets";
@@ -8,6 +9,7 @@ import { usd, pct, ago, srcLabel, dateUTC } from "@/lib/format";
 import { useSpotlight } from "@/components/useSpotlight";
 
 export default function Markets() {
+  const mounted = useMounted();
   const { data, loading, error } = useMarkets();
   const ms = data?.markets ?? [];
   const spy = ms.find((m) => m.x === "SPYx");
@@ -16,7 +18,7 @@ export default function Markets() {
   const last = spy?.bumps?.length ? spy.bumps[spy.bumps.length - 1] : null;
   return (
     <div>
-      <PageHead kicker="Markets" title="Dividend coupons," accent="priced live." sub="Every xStock with a dividend stream gets a 12 month coupon. Fair value is the live xStock price times the multiplier growth of the last 12 months." right={<div className="num text-xs text-dim">{data ? `Updated ${ago(Math.floor(data.at / 1000))}` : loading ? "Loading" : ""}{error ? " · partial data" : ""}</div>} />
+      <PageHead kicker="Markets" title="Dividend coupons," accent="priced live." sub="Every xStock with a dividend stream gets a 12 month coupon. Fair value is the live xStock price times the multiplier growth of the last 12 months." right={<div className="num text-xs text-dim">{data ? `Updated ${(mounted ? ago(Math.floor(data.at / 1000)) : "just now")}` : loading ? "Loading" : ""}{error ? " · partial data" : ""}</div>} />
 
       {/* mobile: proof that the numbers are real, one tap from the onchain replay */}
       <div className="card relative mt-6 overflow-hidden p-5 md:hidden">

@@ -4,6 +4,7 @@ import "./globals.css";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import Providers from "@/components/Providers";
 import { getSnapshotFast } from "@/lib/cache";
+import { getChainMarketsFast } from "@/lib/vault-cache";
 
 // Every page carries the last good market snapshot in its HTML, so numbers show on first paint.
 export const dynamic = "force-dynamic";
@@ -20,11 +21,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#0a0b0d" };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const initial = await getSnapshotFast();
+  const [initial, initialMarkets] = await Promise.all([getSnapshotFast(), getChainMarketsFast()]);
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable} ${mono.variable}`}>
       <body className="noise min-h-screen">
-        <Providers initial={initial}>{children}</Providers>
+        <Providers initial={initial} initialMarkets={initialMarkets}>{children}</Providers>
       </body>
     </html>
   );

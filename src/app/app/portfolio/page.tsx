@@ -89,8 +89,8 @@ export default function Portfolio() {
               <div className="col-span-2 flex min-w-0 items-center gap-3 md:col-span-1">{m && <TokenDot m={m} />}<div className="min-w-0"><div className="num text-ink">{x}</div><div className="truncate text-xs text-dim">{m?.name} · test</div></div></div>
               <div className="num text-right text-sm md:order-5 md:text-left">{usd(r?.total)}</div>
               <div className="min-w-0"><div className="micro !text-[8px] text-faint md:hidden">{x}</div><div className="num truncate text-sm">{units(f(p.x), 4)}</div></div>
-              <div className="min-w-0"><div className="micro !text-[8px] text-faint md:hidden">p{x}</div><div className="num truncate text-sm text-share">{units(f(p.p), 4)}</div></div>
-              <div className="min-w-0"><div className="micro !text-[8px] text-faint md:hidden">d{x}</div><div className="num truncate text-sm text-lime">{units(f(p.d), 4)}</div></div>
+              <div className="min-w-0"><div className="micro !text-[8px] text-faint md:hidden">p{x}</div><div className="num flex min-w-0 items-center gap-1.5 truncate text-sm text-share">{m && <TokenDot m={m} size={18} badge="p" />}{units(f(p.p), 4)}</div></div>
+              <div className="min-w-0"><div className="micro !text-[8px] text-faint md:hidden">d{x}</div><div className="num flex min-w-0 items-center gap-1.5 truncate text-sm text-lime">{m && <TokenDot m={m} size={18} badge="d" />}{units(f(p.d), 4)}</div></div>
               <div className="col-span-3 flex justify-end gap-2 md:order-6 md:col-span-1"><Link href={`/app/split?x=${x}`} className="btn btn-line h-11 flex-1 px-4 text-xs md:h-8 md:flex-none md:px-3">Split</Link><Link href={`/app/trade?x=${x}`} className="btn btn-lime h-11 flex-1 px-4 text-xs md:h-8 md:flex-none md:px-3">Trade</Link></div>
             </div>
           );
@@ -104,6 +104,7 @@ export default function Portfolio() {
           {hist.slice(0, 12).map((r) => (
             <a key={r.sig} href={explorerTx(r.sig)} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-between gap-3 border-b border-line px-6 py-3 text-sm last:border-0 hover:bg-surface-2/50">
               <div className="flex min-w-0 items-center gap-3">
+                {get(r.symbol) && <TokenDot m={get(r.symbol)!} size={22} badge={r.badge} />}
                 <span className={`micro shrink-0 rounded-full border px-2 py-0.5 !text-[9px] ${r.action === "sell" || r.action === "claim" ? "border-lime/40 text-lime" : "border-line-2 text-dim"}`}>{r.action}</span>
                 <span className="num truncate">{r.lines[r.lines.length - 1]?.[1]}</span>
               </div>

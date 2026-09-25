@@ -163,7 +163,7 @@ export function TxModal({ tx, onClose }: { tx: TxState; onClose: () => void }) {
                     <span className="micro text-lime">Confirmed on devnet</span>
                     <motion.span initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.15, type: "spring", stiffness: 400, damping: 14 }} className="flex h-9 w-9 items-center justify-center rounded-full bg-lime text-bg">✓</motion.span>
                   </div>
-                  <div className="display mt-4 text-4xl">{r.title}</div>
+                  <div className="display mt-4 flex items-center gap-3 text-4xl">{LOGOS.has(r.symbol) && <TokenDot m={{ x: r.symbol, under: r.symbol, hue: "#333" }} size={36} badge={r.badge} />}{r.title}</div>
                   <div className="mt-6 divide-y divide-line">
                     {r.lines.map(([k, v], i) => <Row key={k} k={k} v={v} accent={i === r.lines.length - 1} />)}
                     <Row k="Time" v={new Date(r.at).toLocaleString()} />

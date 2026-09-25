@@ -57,7 +57,7 @@ function TradeInner() {
     const ixs = side === "sell" ? v.vault.swapSell(v.owner, cm.dep, rawIn, minRaw, kind) : v.vault.swapBuy(v.owner, cm.dep, rawIn, minRaw, kind);
     const noun = kind === "d" ? "Coupon" : "Share";
     const ok = await v.run(side === "sell" ? `Sell ${units(n, 2)} ${tk}` : `Buy ${tk} with ${usd(n)}`, ixs, (sig) => ({
-      action: side, symbol: x, sig, at: Date.now(), title: side === "sell" ? `${noun} sold` : `${noun} bought`,
+      action: side, symbol: x, badge: kind, sig, at: Date.now(), title: side === "sell" ? `${noun} sold` : `${noun} bought`,
       lines: side === "sell"
         ? [["Sold", `${units(n, 4)} ${tk}`], ["Average price", usd(exec, 4)], ["Minimum accepted", usd(fromRaw(minRaw, USDC_DECIMALS))], ["Received", `${units(out, 2)} test USDC`]]
         : [["Paid", `${units(n, 2)} test USDC`], ["Average price", usd(exec, 4)], ["Minimum accepted", `${units(fromRaw(minRaw, X_DECIMALS), 4)} ${tk}`], ["Received", `${units(out, 4)} ${tk}`]],

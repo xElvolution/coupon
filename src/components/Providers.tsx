@@ -7,14 +7,15 @@ import { RPC_URL } from "@/lib/vault/deployment";
 
 
 import type { SnapshotResponse } from "@/lib/types";
+import type { ChainMarket } from "@/lib/vault/chain-markets";
 
-export default function Providers({ children, initial }: { children: React.ReactNode; initial?: SnapshotResponse | null }) {
+export default function Providers({ children, initial, initialMarkets }: { children: React.ReactNode; initial?: SnapshotResponse | null; initialMarkets?: Record<string, ChainMarket> | null }) {
   return (
     <ConnectionProvider endpoint={RPC_URL}>
       <WalletProvider wallets={[]} autoConnect>
         <WalletModalProvider>
           <MarketsProvider initial={initial}>
-            <VaultProvider>{children}</VaultProvider>
+            <VaultProvider initialMarkets={initialMarkets}>{children}</VaultProvider>
           </MarketsProvider>
         </WalletModalProvider>
       </WalletProvider>
