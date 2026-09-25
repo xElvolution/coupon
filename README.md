@@ -126,8 +126,10 @@ fake coupon pool reject, redeem before maturity reject. The devnet run and its
 signatures are in `src/lib/vault/deployment.devnet.verify-SPYx.json`.
 
 `scripts/deploy-devnet.sh` builds, deploys each program once and runs setup and
-verify. Program data rent on devnet: vault 0.926 SOL, market 0.949 SOL, faucet
-0.698 SOL (2.573 SOL total), plus about 0.3 SOL for mints, pools and seeding.
+verify. Program data rent on devnet: vault 0.676 SOL, market 0.692 SOL, faucet
+0.509 SOL (1.878 SOL locked). A deploy briefly needs about twice the program size
+while the upload buffer exists, so budget about 2.6 SOL for the three deploys, plus
+about 0.3 SOL for mints, pools and seeding.
 
 ## Run
 
