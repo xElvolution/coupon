@@ -1,0 +1,52 @@
+{
+  "at": "2026-09-25T16:56:36.615Z",
+  "tester": "Q5UF6ub1TGTYSv3sjR3vYZVktTUAHLVp19s4CHSZp1n",
+  "market": "3GR5cDp2QcXkXnMyXur2PgnqG9Sro6FJRgpRgdArYDP3",
+  "maturitySecs": 600,
+  "results": [
+    {
+      "action": "mint SPYx short maturity test x",
+      "sig": "4sWPwBX2D7bYTWUZrTxVPpoqbCfFeoTFqRqUW3qsw4grE4gnDShUL34R2CaSCPaC8fV1c36nf3tHSzkPWaoudNMf"
+    },
+    {
+      "action": "mint SPYx short maturity test p",
+      "sig": "5xFCdNgFSKLydDbUsw5cLVhMk7hdB4FWyBG1h769nmuGoTFqpXNX9eNVYheGMSs3Jprh1PnNckLZE8TFW6jG32MZ"
+    },
+    {
+      "action": "mint SPYx short maturity test d",
+      "sig": "21uUiWHgHpKrWeR16fBtwipo8SUoXVGJqpSJnaUi2Ex1nC4A15AQXZ1xtRjcXwaknsc6DeutgPajLB5Zfij72BRf"
+    },
+    {
+      "action": "init_market (maturity 600s)",
+      "sig": "nmJa3HeWjQYv1t58TPo2qiy5ePfVg7LxjNvyKPmY25xmZASufkZKS2vGNdUsMRNk16MnhwsaRqEKLLLzRaiVP4k"
+    },
+    {
+      "action": "admin mints 10 test x to tester",
+      "sig": "3ZuYGVHs2wiYAKbCXrHHFJhCK4ewEpsGonFn5nu5G2QkbHCSdzYnpXYX4yVnULsgzWUJFmGkDFirUbhwptP7B99p"
+    },
+    {
+      "action": "split 10",
+      "sig": "4rZoiGkkrhEEr8wD1i2ab6s7PT8yxamRLEvd7RZJHQ1TcnvN5P2HQcXEVYL813vM8d4jHA1YW2DxtNQEMYxNsRFx"
+    },
+    {
+      "action": "admin bump before maturity",
+      "sig": "4ti5e2GGtJswQ8hUhgEqf2a4S4ke8dgsP66Wk28RdVKkbx5EqurkcXZfbD5HgAmFfWUZwsygaBrTjrR7tG6zbFya"
+    },
+    {
+      "action": "redeem before maturity",
+      "expectError": "Not matured yet. Shares redeem after the 12 month maturity."
+    },
+    {
+      "action": "final coupon claim after maturity",
+      "sig": "9LBJwtsJ2TE1V54XoJ9UWghDVmzLdKphm5nqm18EdtDMDDvG6eUKzxDnCkWhVv63jSk4DCc9xLYKWEkNhLsnYd4"
+    },
+    {
+      "action": "redeem 10 p after maturity",
+      "sig": "3wUH2K9uqB6L8mptnWQvosCPPAgQhTviScUJ6byfgXrNRN3hpN8vFRHfpXBzBQBDgsLxXDwdg9oyDGwqPF7dh3Xq"
+    },
+    {
+      "action": "split after maturity",
+      "expectError": "Coupon matured. This market no longer accepts new positions."
+    }
+  ]
+}
