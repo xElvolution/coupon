@@ -1,1 +1,93 @@
-null
+{
+  "cluster": "devnet",
+  "programs": {
+    "vault": "9Q2QA1TmocSh7rDZWn8kxWGpoJHrxjDRV8NLxw2tVoVe",
+    "market": "EPCXp2gEtwa6c28x19XgM2oV9k3T5pLsUiAzEaJUc3WN",
+    "faucet": "5SYQ5Pp1AfR2QRLQy4WFyqbHdrVtECJ1GdkwwPepEDRE"
+  },
+  "admin": "9G8fuNucXYpxFcyboUmbdxy35PQ3wM7tbjUPJz6raTkV",
+  "usdcMint": "AsGSH7q37BC9Zd8P7iUxtka64dv9LimCJVysSeTZE7av",
+  "markets": [
+    {
+      "symbol": "SPYx",
+      "xMint": "FLu89b3ANbMp23ovAcp7iAxd6NUz4DXLNRLLUPwH9b2b",
+      "pMint": "ADYcoQCQZ1EtGK5BVSUj5DMJeMopr9rMdMuHa7BujMD1",
+      "dMint": "HoHrhRXsasqmMmqB45zWtWF8YUtxeNGvCamutJvmgda8",
+      "lpMint": "F11BXnwVvb8Kam3oLcp1qzqkDA1hNSWp9erxvqooEg1v",
+      "mainnetMint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "multiplier": 1.005714560286254
+    },
+    {
+      "symbol": "MSFTx",
+      "xMint": "4f6zk5tPacSrMyMecYB3tp6fNdwHdwfsnHmUPQUbZPdA",
+      "pMint": "A42fBAt4HmFpRDsw5r9RXDeQFLy2dYU6F2D1d34anGNJ",
+      "dMint": "39fbUyY4ZN5RDtWYrBJWCi8dME9QvJmthRtf7T5pMEAF",
+      "lpMint": "FtsLsk4XdKBo6by41jwV4WGWuvScCbp96zhLhGEFfzrB",
+      "mainnetMint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+      "multiplier": 1.0059033904787456
+    },
+    {
+      "symbol": "QQQx",
+      "xMint": "7q39FRNqpme7KVoi29qnY4R9UCaSGheEw2xSDFWocxiy",
+      "pMint": "AtfBvYzR8mM931KwtTkREzmNQPVmy3nnJsENNK3ykYxx",
+      "dMint": "3rD4z7wncjjUxSpzvhigD7XuieDXYU8iymSmxRZiFz6m",
+      "lpMint": "HM9Kz3D1eboePpwoccdQw3n5iEBNaaLwC3qsVwDWXbaP",
+      "mainnetMint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+      "multiplier": 1.0034560758968376
+    },
+    {
+      "symbol": "AAPLx",
+      "xMint": "FtBiLWYjXHdRhRLJ2887xbz4CM1wNQWD3ByxZqLVzu7L",
+      "pMint": "9yd2iEEsEUFa3KsQC5XA9pB3gMhb32mKGMQMiKNmjdc3",
+      "dMint": "9FSASoruV3s66ZK3uiWLd9Gg8DZLDKVqDMA626o9zyJx",
+      "lpMint": "69J4Nm5YFRKiyzo1wqokVmL8c8vAJDMatCda6TYWWCqq",
+      "mainnetMint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "multiplier": 1.0032690125398187
+    },
+    {
+      "symbol": "METAx",
+      "xMint": "3wx3pUcMMpf48fdy8A2YPCwuKwfXcNauGp9aPphFfHJH",
+      "pMint": "8xa9NhkPbhPNC6VRuhJs4Go9QLyXaomZXQU77dcc5cgW",
+      "dMint": "9QBUzxjrWwgckjA9qiSmH41gFugzdFSaivXFgmRR1pdt",
+      "lpMint": "9XLDfiHZ6UHR8EAd1pYAA7pxCKw46Tg6ZtNj5vnZpXnz",
+      "mainnetMint": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+      "multiplier": 1.0028515433272898
+    },
+    {
+      "symbol": "GOOGLx",
+      "xMint": "3qeMQQ8T7VjAtJWEdPBx7b7ZGpKFFoHmmQnsByFGSLbr",
+      "pMint": "DBP3x35WXfhVqWypKAgacd1VEJvektqWkN6r5W3Ya3By",
+      "dMint": "GkqJ3Mvr1Ve46ocowjhnQ214ANmFhgxfidX5SG9uuHcN",
+      "lpMint": "QvDXG9nzDraceuKEUxPB29gwdtdVKi7Npi8n8ru1x2a",
+      "mainnetMint": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+      "multiplier": 1.0023772500603487
+    },
+    {
+      "symbol": "NVDAx",
+      "xMint": "BNDpR43GDKQpYex15aB9PqWWbjTaSB847QbD2UqN1Zes",
+      "pMint": "8iftEt54CXcwugcSKSmXktPPqk4NQ5TW8xixsDLXe25C",
+      "dMint": "BEFmirUejzzxfVLzgBn6noZTMMepw4fyDJvx7sDhbBzK",
+      "lpMint": "Cg6Zszkcq7dRbHebbg53up8S8vYt1LrEKn7oVDGLES9T",
+      "mainnetMint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "multiplier": 1.001701196801074
+    },
+    {
+      "symbol": "TSLAx",
+      "xMint": "2pS5i3xnHUUrjGAAd63hBUo7uKxa7HT6rPna56stTLxd",
+      "pMint": "9AtrWZnCGUMWy1M78JRzfqEQaNJQ1YCQvVb7BEUrPYkK",
+      "dMint": "4RxZ2Tb8DTEFnhEXzNwNTC5w33BRx2E3a8hicSd45Tta",
+      "lpMint": null,
+      "mainnetMint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+      "multiplier": 1
+    },
+    {
+      "symbol": "AMZNx",
+      "xMint": "3eZi6eRBdVsbi7zmwKhhUBV7bwCEVaNGQgsDSUKEs2S6",
+      "pMint": "HZBtX6JJRcp668xYDMZuNSqUmc375ud2YuowdpG1p5f5",
+      "dMint": "7JjbsHo8LC6tSBsZ8BWcybT7TgGgdGnyUUpgkcnSj2YP",
+      "lpMint": null,
+      "mainnetMint": "Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg",
+      "multiplier": 1
+    }
+  ]
+}

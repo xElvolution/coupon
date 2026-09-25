@@ -1,0 +1,75 @@
+{
+  "at": "2026-09-25T16:12:19.281Z",
+  "tester": "Q5UF6ub1TGTYSv3sjR3vYZVktTUAHLVp19s4CHSZp1n",
+  "results": [
+    {
+      "action": "faucet again (cooldown)",
+      "expectError": "Faucet cooldown: one claim per token per hour."
+    },
+    {
+      "action": "split 50 SPYx",
+      "sig": "579QGemwUx7DULJyJ82xsChwF6xbWd1tRmdt3Egv6UUQjc6KrK7rGkVjp8VgxEQ9xKSq33FxLYtk55zibmpRPXoM"
+    },
+    {
+      "action": "sell 20 with min_out 2x (slippage)",
+      "expectError": "Slippage exceeded. The pool moved; try again or widen tolerance."
+    },
+    {
+      "action": "sell 20 dSPYx",
+      "sig": "5PWwCecPiRRpq6VLn6CQwm1ihT1DunYUPecStuh4aYtT44wfvHSQELLGqSR1wAqGRoA5zfUwiukgdwuanxKgbHLs"
+    },
+    {
+      "action": "admin bump",
+      "sig": "5eDvRPG4hcG1t3VfePYJpeFURBq1vW4XfRaiiirwmtt5b7rVc8vm7EwPcpXUg7L3cLJP3CmtRApSdndq5Kt3z9a7"
+    },
+    {
+      "action": "claim",
+      "sig": "2c96NTDna6QPJFZH6TAyGn5kFoMyYpJ7LVLU3Hargrx9Z3w8hi9g7PyAYuqU5DjdCPv25Lt6ue7vXexucjsY9Psd"
+    },
+    {
+      "action": "recombine 10 SPYx",
+      "sig": "3ecyzsWApaHcAbxsFpVRmTboYGYiZhUaZGJKuqjDueTnXLFnF1BetFr2svrvWEpNFvN6bfCRx4ZTzGGVN3dzPBB"
+    },
+    {
+      "action": "buy with 10 USDC",
+      "sig": "4tLYj2Rd4qp57FT2zLksJufy2TQuwP8kbSrBGA4QGWyAjqNFWuq6vEMEvGYKYg6VPE87biYR9QFHXHVR4CpvAph6"
+    },
+    {
+      "action": "add liquidity 5 d",
+      "sig": "3r1pfjWVQGWmPMKmkj1iMLituWmJLKoJpw8VpyKi7c9Uz3izdc9oAAEpypA474tMVMBFx963RuDvuNiboDVUUQ77"
+    },
+    {
+      "action": "remove liquidity",
+      "sig": "5pxiiA516PkCzRZZ1hiXXujM4U9YKSbpwwkDVArz7fhZJEbjKwXXhc6o4V3eQnKUw6dCWYjA1vCos3jhPzxxNY2M"
+    },
+    {
+      "action": "pool for a fake coupon",
+      "expectError": "Not a genuine coupon_vault coupon."
+    },
+    {
+      "action": "redeem before maturity",
+      "expectError": "Not matured yet. Shares redeem after the 12 month maturity."
+    }
+  ],
+  "firstRun": {
+    "note": "First pass at 17:11 WAT stopped on an RPC blockhash error after remove liquidity; the full rerun above passed. Faucet signatures come from that first pass (the 1 hour cooldown blocks a second claim).",
+    "results": [
+      {
+        "action": "fund tester 0.1 SOL from deployer",
+        "sig": "5b3tCwsjfF92p49t5dwsNATtzig86B89uG5R4WqkkEwSsUKYPQLW1HMLgF9KtuCYTkkEzVDfpyUbkpNLswTUEcCm"
+      },
+      {
+        "action": "faucet SPYx",
+        "sig": "5mADwWrTEKiGoQseTJfLdaN4AmGivbx5WowNmQCq53XjtpUM64E9hpTmFiYery1U5DM2ohnWGFDKhdz5qozYHWLJ"
+      },
+      {
+        "action": "faucet USDC",
+        "sig": "3ViarN5XzqwzBosDLDJtJf4pwb8LuxRaoPpm3Y1hJjgJb82DcrL9JyHyvRencrAAegUWpZv2qUKKhdzEVm2d42st"
+      },
+      {
+        "action": "split 50 SPYx",
+        "sig": "63Bkquh822TPSDZ7F2KadQSoDY36ettqpCXSoQTwYcJtB249jnThzpB1sLe1ziqmyFuX9YcgPkX2R8VDEqEa8fXS"
+      }
+    ]
+  }
+}

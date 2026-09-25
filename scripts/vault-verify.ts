@@ -8,6 +8,17 @@ import { CouponVault, TOKEN_2022, X_DECIMALS, USDC_DECIMALS, swapOut, couponClai
 
 const [rpc, depPath, symbol = "SPYx"] = process.argv.slice(2);
 const conn = new Connection(rpc, "confirmed");
+// public RPCs sometimes simulate against a node that has not seen the fresh blockhash yet; nothing was sent, so retrying is safe
+const sendTx = async (tx: () => Transaction, signers: Keypair[]) => {
+  for (let i = 0; ; i++) {
+    try {
+      return await sendAndConfirmTransaction(conn, tx(), signers, { commitment: "confirmed" });
+    } catch (e) {
+      if (i < 5 && String((e as Error).message).includes("Blockhash not found")) { await new Promise((r) => setTimeout(r, 1500)); continue; }
+      throw e;
+    }
+  }
+};
 const load = (f: string) => Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(f, "utf8"))));
 const admin = load(".keys/deployer.json");
 const user = load(".keys/tester.json");
@@ -22,14 +33,14 @@ const ok = (cond: boolean, msg: string) => {
   if (!cond) failed++;
 };
 const send = async (action: string, ixs: TransactionInstruction[], signer = user) => {
-  const sig = await sendAndConfirmTransaction(conn, new Transaction().add(...ixs), [signer], { commitment: "confirmed" });
+  const sig = await sendTx(() => new Transaction().add(...ixs), [signer]);
   console.log(action.padEnd(26), sig);
   results.push({ action, sig });
   return sig;
 };
 const expectFail = async (action: string, ixs: TransactionInstruction[], code: number, signers: Keypair[] = [user]) => {
   try {
-    await sendAndConfirmTransaction(conn, new Transaction().add(...ixs), signers, { commitment: "confirmed" });
+    await sendTx(() => new Transaction().add(...ixs), signers);
     ok(false, `${action} should fail with code ${code}`);
   } catch (e) {
     const s = String((e as Error).message) + JSON.stringify((e as { logs?: string[] }).logs ?? "");
@@ -116,7 +127,7 @@ ok((await pos()).lp === 0n, "LP burned, reserves returned");
 const fakeD = Keypair.generate(), fakeLp = Keypair.generate();
 const space = getMintLen([]);
 const rent = await conn.getMinimumBalanceForRentExemption(space);
-await sendAndConfirmTransaction(conn, new Transaction().add(
+await sendTx(() => new Transaction().add(
   SystemProgram.createAccount({ fromPubkey: admin.publicKey, newAccountPubkey: fakeD.publicKey, space, lamports: rent, programId: TOKEN_2022 }),
   createInitializeMint2Instruction(fakeD.publicKey, X_DECIMALS, admin.publicKey, null, TOKEN_2022),
   SystemProgram.createAccount({ fromPubkey: admin.publicKey, newAccountPubkey: fakeLp.publicKey, space, lamports: rent, programId: TOKEN_2022 }),
