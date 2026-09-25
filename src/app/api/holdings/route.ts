@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { MARKETS, MAINNET_RPC } from "@/lib/markets";
+import { MARKETS } from "@/lib/markets";
+import { rpc } from "@/lib/server-data";
 import { getSnapshot } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
@@ -10,15 +11,7 @@ export async function GET(req: Request) {
   const owner = new URL(req.url).searchParams.get("owner") ?? "";
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(owner)) return NextResponse.json({ ok: false, error: "bad owner" }, { status: 400 });
   try {
-    const r = await fetch(MAINNET_RPC, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getTokenAccountsByOwner", params: [owner, { programId: TOKEN_2022 }, { encoding: "jsonParsed" }] }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-    });
-    const j = await r.json();
-    if (j.error) throw new Error(j.error.message);
+    const j = await rpc("getTokenAccountsByOwner", [owner, { programId: TOKEN_2022 }, { encoding: "jsonParsed" }]);
     const snap = await getSnapshot();
     const out = MARKETS.map((m) => {
       const raw = (j.result?.value ?? [])
