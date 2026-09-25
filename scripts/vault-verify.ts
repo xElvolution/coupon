@@ -2,7 +2,8 @@
 // Runs as a test (asserts balances and error codes) on localnet, and as the devnet verification.
 // Usage: bun scripts/vault-verify.ts <rpc> <deployment.json> [SYMBOL]
 import { Connection, Keypair, SystemProgram, Transaction, LAMPORTS_PER_SOL, sendAndConfirmTransaction, type TransactionInstruction } from "@solana/web3.js";
-import { ExtensionType, getMintLen, createInitializeMint2Instruction } from "@solana/spl-token";
+import { getMintLen, createInitializeMint2Instruction, createTransferCheckedWithTransferHookInstruction } from "@solana/spl-token";
+import { TransactionInstruction as TxIx, PublicKey } from "@solana/web3.js";
 import fs from "fs";
 import { CouponVault, TOKEN_2022, X_DECIMALS, USDC_DECIMALS, swapOut, couponClaim, shareValue, toRaw, fromRaw, explainError, type Deployment } from "../src/lib/vault/sdk";
 
@@ -22,6 +23,7 @@ const sendTx = async (tx: () => Transaction, signers: Keypair[]) => {
 const load = (f: string) => Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(f, "utf8"))));
 const admin = load(".keys/deployer.json");
 const user = load(".keys/tester.json");
+const receiver = load(".keys/receiver.json");
 const dep: Deployment = JSON.parse(fs.readFileSync(depPath, "utf8"));
 const v = new CouponVault(dep);
 const m = v.find(symbol);
@@ -122,6 +124,72 @@ p1 = await pos();
 ok(p1.lp === lpExp, `received ${fromRaw(lpExp, 8)} LP`);
 await send("remove liquidity", v.removeLiquidity(user.publicKey, m, p1.lp, 1n, 1n));
 ok((await pos()).lp === 0n, "LP burned, reserves returned");
+
+// ---------- share (p) pool: buy and sell pSPYx against USDC, same code path as the coupon pool ----------
+if (k.pLp) {
+  mk = await v.readMarket(conn, m);
+  const qpb = swapOut(toRaw(100, USDC_DECIMALS), mk.reservePUsdc, mk.reserveP);
+  p0 = await pos();
+  await send(`buy p${symbol} with 100 USDC`, v.swapBuy(user.publicKey, m, toRaw(100, USDC_DECIMALS), (qpb * 99n) / 100n, "p"));
+  p1 = await pos();
+  ok(p1.p - p0.p === qpb, `share buy received ${fromRaw(qpb, 8)} p${symbol}`);
+  mk = await v.readMarket(conn, m);
+  const pIn = toRaw(5, X_DECIMALS);
+  const qps = swapOut(pIn, mk.reserveP, mk.reservePUsdc);
+  await expectFail(`sell 5 p${symbol} with min_out 2x (slippage)`, v.swapSell(user.publicKey, m, pIn, qps * 2n, "p"), 11);
+  p0 = await pos();
+  await send(`sell 5 p${symbol}`, v.swapSell(user.publicKey, m, pIn, (qps * 99n) / 100n, "p"));
+  p1 = await pos();
+  ok(p1.usdc - p0.usdc === qps && p0.p - p1.p === pIn, `share sell paid ${fromRaw(qps, 6)} USDC`);
+}
+
+// ---------- transfer hook: coupons sent wallet to wallet only earn from the moment they arrive ----------
+{
+  if ((await conn.getBalance(receiver.publicKey)) < 0.01 * LAMPORTS_PER_SOL) {
+    await sendTx(() => new Transaction().add(SystemProgram.transfer({ fromPubkey: admin.publicKey, toPubkey: receiver.publicKey, lamports: 0.02 * LAMPORTS_PER_SOL })), [admin]);
+  }
+  const rpos = () => v.readPosition(conn, m, receiver.publicKey);
+  // receiver opens a position first, so it holds an OLD snapshot: the case a naive design would over pay
+  await send("receiver opens position", v.claim(receiver.publicKey, m), receiver);
+  await send("tester claim (snapshot now)", v.claim(user.publicKey, m));
+  mk = await v.readMarket(conn, m);
+  const mA = mk.multiplier!;
+  await send("admin bump 2", [v.bump(admin.publicKey, m, mA * ratio)], admin);
+  mk = await v.readMarket(conn, m);
+  const mB = mk.multiplier!;
+  const tBefore = await pos();
+  const sendAmt = toRaw(10, X_DECIMALS);
+  // built the way a wallet builds it: spl-token resolves the hook accounts from the mint's ExtraAccountMetaList
+  const tix = await createTransferCheckedWithTransferHookInstruction(conn, v.ata(k.d, user.publicKey), k.d, v.ata(k.d, receiver.publicKey), user.publicKey, sendAmt, X_DECIMALS, [], "confirmed", TOKEN_2022);
+  await send(`transfer 10 d${symbol} to receiver`, [v.ensureAta(user.publicKey, k.d, receiver.publicKey), tix]);
+  const tAfter = await pos();
+  const bookedExp = couponClaim(tBefore.d, mk.mBase!, mA, mB);
+  ok(tAfter.owed === bookedExp && bookedExp > 0n, `hook booked ${fromRaw(bookedExp, 8)} raw to the sender for the bump it held through`);
+  let r0 = await rpos();
+  await send("receiver claim after transfer", v.claim(receiver.publicKey, m), receiver);
+  let r1 = await rpos();
+  ok(r1.x === r0.x, "receiver claimed 0 for the bump before it held the coupons (no over claim)");
+  const t0 = await pos();
+  await send("sender claim after transfer", v.claim(user.publicKey, m));
+  const t1 = await pos();
+  ok(t1.x - t0.x === bookedExp, `sender claimed the ${fromRaw(bookedExp, 8)} raw it earned before sending`);
+  await send("admin bump 3", [v.bump(admin.publicKey, m, mB * ratio)], admin);
+  mk = await v.readMarket(conn, m);
+  const recvExp = couponClaim(sendAmt, mk.mBase!, mB, mk.multiplier!);
+  r0 = await rpos();
+  await send("receiver claim after next bump", v.claim(receiver.publicKey, m), receiver);
+  r1 = await rpos();
+  ok(r1.x - r0.x === recvExp && recvExp > 0n, `receiver claimed ${fromRaw(recvExp, 8)} raw for the bump while it held 10 d${symbol}`);
+  // calling the hook directly (outside a Token-2022 transfer) is rejected
+  const fake = new TxIx({ programId: v.vaultId, data: Buffer.concat([Buffer.from([105, 37, 101, 197, 75, 251, 102, 26]), Buffer.from(new BigUint64Array([10n ** 12n]).buffer)]), keys: [
+    { pubkey: v.ata(k.d, user.publicKey), isSigner: false, isWritable: false }, { pubkey: k.d, isSigner: false, isWritable: false },
+    { pubkey: v.ata(k.d, receiver.publicKey), isSigner: false, isWritable: false }, { pubkey: user.publicKey, isSigner: false, isWritable: false },
+    { pubkey: v.metas(k.d), isSigner: false, isWritable: false }, { pubkey: k.market, isSigner: false, isWritable: true }, { pubkey: k.x, isSigner: false, isWritable: false },
+    { pubkey: v.pos(k.market, user.publicKey), isSigner: false, isWritable: true }, { pubkey: v.pos(k.market, receiver.publicKey), isSigner: false, isWritable: true },
+  ] });
+  await expectFail("hook called outside a transfer", [fake], 2);
+  void PublicKey;
+}
 
 // a fake coupon (mint not controlled by coupon_vault) must not get a pool
 const fakeD = Keypair.generate(), fakeLp = Keypair.generate();

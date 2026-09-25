@@ -6,7 +6,15 @@
 //!   auth    ["auth"]                   mint authority of every p and d mint, owner of the xStock
 //!                                      vault token accounts, ScaledUiAmount authority of test mints
 //!   market  ["market", x_mint]         x, p, d mints, base multiplier, maturity
-//!   pos     ["pos", market, owner]     the holder's multiplier snapshot for coupon claims
+//!   pos     ["pos", market, owner]     the holder's multiplier snapshot and income owed
+//!   metas   ["extra-account-metas", d] Token-2022 transfer hook account list for each d mint
+//!
+//! Transfer hook: every d mint carries the Token-2022 TransferHook extension pointing at this
+//! program. On every transfer (wallet to wallet, Phantom, pools) Token-2022 calls `execute`, which
+//! books the sender's income up to now into `owed` and does the same for the receiver on its
+//! balance before the transfer, then resets both snapshots. So a holder only earns bumps that
+//! happen while it holds the coupon. A receiver without a position account yet starts earning
+//! from its first claim or split (the hook cannot create accounts; that income stays as surplus).
 //!
 //! Math (integer base units, multipliers as 1e12 fixed point):
 //!   split(a) at multiplier m mints p = d = a * m / m_base
@@ -38,10 +46,11 @@ solana_program::entrypoint!(process);
 pub const YEAR: i64 = 365 * 24 * 3600;
 pub const CONFIG_LEN: usize = 8 + 32 + 1;
 pub const MARKET_LEN: usize = 8 + 32 * 3 + 8 * 5 + 1;
-pub const POS_LEN: usize = 8 + 8;
+pub const POS_LEN: usize = 8 + 8 + 8;
+pub const METAS_LEN: usize = 8 + 4 + 4 + 4 * 35;
 const TAG_CONFIG: &[u8; 8] = b"CPNVCFG1";
 pub const TAG_MARKET: &[u8; 8] = b"CPNMKT01";
-const TAG_POS: &[u8; 8] = b"CPNPOS01";
+const TAG_POS: &[u8; 8] = b"CPNPOS02";
 
 pub mod ix {
     pub const INIT_CONFIG: u8 = 0;
@@ -106,6 +115,9 @@ pub fn load_market(a: &AccountInfo, pid: &Pubkey) -> Result<Market, ProgramError
 }
 
 pub fn process(pid: &Pubkey, accounts: &[AccountInfo], data: &[u8]) -> ProgramResult {
+    if data.len() >= 16 && data[..8] == EXECUTE_DISC {
+        return hook_execute(pid, accounts, arg_u64(&data[8..], 0)?);
+    }
     let (&tag, rest) = data.split_first().ok_or(E::BadData)?;
     match tag {
         ix::INIT_CONFIG => init_config(pid, accounts),
@@ -133,10 +145,17 @@ fn init_config(pid: &Pubkey, a: &[AccountInfo]) -> ProgramResult {
     Ok(())
 }
 
-/// 1 init_market(fair_micro, maturity_secs): [admin s w, config, market w, x_mint, p_mint, d_mint, system]
-/// p and d must be fresh 8 decimal mints whose authority is the vault auth PDA.
+/// 1 init_market(fair_micro, maturity_secs): [admin s w, config, market w, x_mint, p_mint, d_mint, system, metas w]
+/// p and d must be fresh 8 decimal mints whose authority is the vault auth PDA, and the d mint must
+/// name this program as its transfer hook. The test deployment lets the admin pick the maturity
+/// (the devnet short maturity market uses minutes); a `fixed-maturity` build pins it to 12 months.
 fn init_market(pid: &Pubkey, a: &[AccountInfo], fair: u64, maturity_secs: i64) -> ProgramResult {
-    let [admin, config, market, x, p, dm, sys, ..] = a else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let [admin, config, market, x, p, dm, sys, metas, ..] = a else { return Err(ProgramError::NotEnoughAccountKeys) };
+    #[cfg(feature = "fixed-maturity")]
+    let maturity_secs = YEAR;
+    if maturity_secs <= 0 {
+        return Err(E::BadData.into());
+    }
     let cfg = load_config(config, pid)?;
     signer(admin)?;
     if admin.key != &cfg.admin {
@@ -146,6 +165,14 @@ fn init_market(pid: &Pubkey, a: &[AccountInfo], fair: u64, maturity_secs: i64) -
     for mint in [p, dm] {
         let mi = read_mint(mint)?;
         if mi.authority != Some(auth) || mi.supply != 0 || mi.decimals != X_DECIMALS {
+            return Err(E::BadAccount.into());
+        }
+    }
+    {
+        let dd = dm.try_borrow_data()?;
+        let hook = find_ext(&dd, EXT_TRANSFER_HOOK).ok_or(E::BadAccount)?;
+        if hook.len() < 64 || &rd_pk(hook, 32) != pid {
+            msg!("d mint must use coupon_vault as its transfer hook");
             return Err(E::BadAccount.into());
         }
     }
@@ -165,14 +192,104 @@ fn init_market(pid: &Pubkey, a: &[AccountInfo], fair: u64, maturity_secs: i64) -
     d[128..136].copy_from_slice(&now.checked_add(maturity_secs).ok_or(E::Math)?.to_le_bytes());
     d[136..144].copy_from_slice(&fair.to_le_bytes());
     d[144] = b;
+    drop(d);
+    init_metas(pid, admin, market, x, dm, metas, sys)?;
     msg!("event:market_init x={} p={} d={} m_base={} maturity={}", x.key, p.key, dm.key, m, now + maturity_secs);
+    Ok(())
+}
+
+/// Writes the ExtraAccountMetaList Token-2022 reads on every d transfer:
+/// 5 market (w), 6 x mint, 7 pos of the source owner (w), 8 pos of the destination owner (w).
+fn init_metas<'a>(pid: &Pubkey, admin: &AccountInfo<'a>, market: &AccountInfo<'a>, x: &AccountInfo<'a>, dm: &AccountInfo<'a>, metas: &AccountInfo<'a>, sys: &AccountInfo<'a>) -> ProgramResult {
+    let (k, b) = Pubkey::find_program_address(&[b"extra-account-metas", dm.key.as_ref()], pid);
+    expect_key(metas, &k)?;
+    create_pda(admin, metas, sys, pid, &[b"extra-account-metas", dm.key.as_ref(), &[b]], METAS_LEN)?;
+    let mut d = metas.try_borrow_mut_data()?;
+    d[..8].copy_from_slice(&EXECUTE_DISC);
+    d[8..12].copy_from_slice(&((4 + 4 * 35) as u32).to_le_bytes());
+    d[12..16].copy_from_slice(&4u32.to_le_bytes());
+    let mut put = |i: usize, disc: u8, cfg: [u8; 32], w: bool| {
+        let o = 16 + i * 35;
+        d[o] = disc;
+        d[o + 1..o + 33].copy_from_slice(&cfg);
+        d[o + 33] = 0;
+        d[o + 34] = w as u8;
+    };
+    put(0, 0, market.key.to_bytes(), true);
+    put(1, 0, x.key.to_bytes(), false);
+    // seeds: literal "pos", key of account 5 (market), owner field (offset 32, 32 bytes) of account 0 or 2
+    for (i, acct) in [(2usize, 0u8), (3, 2)] {
+        let mut c = [0u8; 32];
+        c[..11].copy_from_slice(&[1, 3, b'p', b'o', b's', 3, 5, 4, acct, 32, 32]);
+        put(i, 1, c, true);
+    }
+    Ok(())
+}
+
+/// Books income owed on `bal` since the snapshot and resets the snapshot to m. Skips owners with no
+/// position account (they start earning at their first claim or split).
+fn accrue(pid: &Pubkey, market: &AccountInfo, pos: &AccountInfo, owner: &Pubkey, bal: u64, m_base: u64, m: u64) -> ProgramResult {
+    let (k, _) = Pubkey::find_program_address(&[b"pos", market.key.as_ref(), owner.as_ref()], pid);
+    expect_key(pos, &k)?;
+    if pos.lamports() == 0 || pos.owner != pid {
+        return Ok(());
+    }
+    let mut d = pos.try_borrow_mut_data()?;
+    if d.len() < POS_LEN || &d[..8] != TAG_POS {
+        return Err(E::BadAccount.into());
+    }
+    let snap = rd_u64(&d, 8);
+    let owed = rd_u64(&d, 16).checked_add(coupon_claim(bal, m_base, snap, m)?).ok_or(E::Math)?;
+    d[8..16].copy_from_slice(&m.to_le_bytes());
+    d[16..24].copy_from_slice(&owed.to_le_bytes());
+    Ok(())
+}
+
+/// Transfer hook execute(amount): [0 source, 1 d mint, 2 destination, 3 authority, 4 metas,
+///  5 market w, 6 x mint, 7 source pos w, 8 destination pos w]. Only runs inside a real Token-2022
+/// transfer (the source account's `transferring` flag is set), after balances moved.
+fn hook_execute(pid: &Pubkey, a: &[AccountInfo], amount: u64) -> ProgramResult {
+    let [src, dm, dst, _authority, metas, market, x, spos, dpos, ..] = a else { return Err(ProgramError::NotEnoughAccountKeys) };
+    let (mk_key, _) = Pubkey::find_program_address(&[b"extra-account-metas", dm.key.as_ref()], pid);
+    expect_key(metas, &mk_key)?;
+    let (s_owner, s_post) = {
+        if src.owner != &TOKEN_2022 {
+            return Err(E::BadAccount.into());
+        }
+        let d = src.try_borrow_data()?;
+        let flag = find_ext(&d, EXT_TRANSFER_HOOK_ACCOUNT).ok_or(E::Unauthorized)?;
+        if flag.first() != Some(&1) {
+            return Err(E::Unauthorized.into());
+        }
+        (rd_pk(&d, 32), rd_u64(&d, 64))
+    };
+    let mut mk = load_market(market, pid)?;
+    expect_key(dm, &mk.d)?;
+    expect_key(x, &mk.x)?;
+    let (d_owner, d_post) = {
+        if dst.owner != &TOKEN_2022 {
+            return Err(E::BadAccount.into());
+        }
+        let d = dst.try_borrow_data()?;
+        if &rd_pk(&d, 0) != dm.key {
+            return Err(E::BadAccount.into());
+        }
+        (rd_pk(&d, 32), rd_u64(&d, 64))
+    };
+    let (m, _) = effective_m(market, &mut mk, x)?;
+    let same = src.key == dst.key;
+    let s_pre = if same { s_post } else { s_post.checked_add(amount).ok_or(E::Math)? };
+    let d_pre = if same { d_post } else { d_post.saturating_sub(amount) };
+    accrue(pid, market, spos, &s_owner, s_pre, mk.m_base, m)?;
+    accrue(pid, market, dpos, &d_owner, d_pre, mk.m_base, m)?;
+    msg!("event:transfer d={} from={} to={} amount={} m={}", dm.key, s_owner, d_owner, amount, m);
     Ok(())
 }
 
 /// Effective multiplier: live until maturity, then frozen at the first read after maturity.
 fn effective_m(market: &AccountInfo, mk: &mut Market, x: &AccountInfo) -> Result<(u64, bool), ProgramError> {
     let now = Clock::get()?.unix_timestamp;
-    if now >= mk.maturity {
+    if matured(now, mk.maturity) {
         if mk.m_final == 0 {
             mk.m_final = read_scaled(x, now)?.0;
             market.try_borrow_mut_data()?[112..120].copy_from_slice(&mk.m_final.to_le_bytes());
@@ -212,8 +329,11 @@ fn settle<'a>(
         if pos.owner != pid || &pos.try_borrow_data()?[..8] != TAG_POS {
             return Err(E::BadAccount.into());
         }
-        let snap = rd_u64(&pos.try_borrow_data()?, 8);
-        let pending = coupon_claim(d_bal, mk.m_base, snap, m)?;
+        let (snap, owed) = {
+            let d = pos.try_borrow_data()?;
+            (rd_u64(&d, 8), rd_u64(&d, 16))
+        };
+        let pending = coupon_claim(d_bal, mk.m_base, snap, m)?.checked_add(owed).ok_or(E::Math)?;
         if pending > 0 {
             // cap: never pay into the share holders' reserve
             let vault_bal = check_ta(vault, x.key, auth.key)?;
@@ -224,7 +344,11 @@ fn settle<'a>(
             }
         }
     }
-    pos.try_borrow_mut_data()?[8..16].copy_from_slice(&m.to_le_bytes());
+    {
+        let mut d = pos.try_borrow_mut_data()?;
+        d[8..16].copy_from_slice(&m.to_le_bytes());
+        d[16..24].copy_from_slice(&0u64.to_le_bytes());
+    }
     if paid > 0 {
         msg!("event:claim x={} user={} raw={} m={}", x.key, user.key, paid, m);
     }

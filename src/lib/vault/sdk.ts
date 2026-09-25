@@ -28,10 +28,14 @@ export type MarketDeployment = {
   xMint: string;
   pMint: string;
   dMint: string;
-  lpMint: string | null; // null when the asset paid no dividend in 12 months, so no coupon pool
+  lpMint: string | null; // LP of the d/USDC pool; null when the asset paid no dividend in 12 months, so no coupon pool
+  pLpMint?: string | null; // LP of the p/USDC share pool
   mainnetMint: string;
   multiplier: number; // mainnet multiplier mirrored at setup
+  maturitySecs?: number; // 12 months unless set (the short maturity test market)
+  testOnly?: string; // label for markets that exist only to exercise a code path (hidden in the app)
 };
+export type Side = "d" | "p";
 export type Deployment = {
   cluster: "devnet" | "localnet";
   programs: { vault: string; market: string; faucet: string };
@@ -138,8 +142,26 @@ export class CouponVault {
   pos(market: PublicKey, owner: PublicKey) {
     return this.pda([Buffer.from("pos"), market.toBuffer(), owner.toBuffer()], this.vaultId);
   }
-  pool(d: PublicKey) {
-    return this.pda([Buffer.from("pool"), d.toBuffer()], this.marketId);
+  pool(mint: PublicKey) {
+    return this.pda([Buffer.from("pool"), mint.toBuffer()], this.marketId);
+  }
+  /** Token-2022 ExtraAccountMetaList of a d mint (coupon_vault is the transfer hook). */
+  metas(d: PublicKey) {
+    return this.pda([Buffer.from("extra-account-metas"), d.toBuffer()], this.vaultId);
+  }
+  /** Accounts a d transfer needs for the hook, given the owners of both token accounts. */
+  hookAccounts(m: MarketDeployment, owners: PublicKey[]): AccountMeta[] {
+    const k = this.keys(m);
+    return [R(this.metas(k.d)), W(k.market), R(k.x), ...owners.map((o) => W(this.pos(k.market, o))), R(this.vaultId)];
+  }
+  /** Wallet to wallet d transfer (what Phantom builds after resolving the hook accounts). */
+  transferD(from: PublicKey, to: PublicKey, m: MarketDeployment, raw: bigint) {
+    const k = this.keys(m);
+    const data = Buffer.concat([Buffer.from([12]), u64(raw), Buffer.from([X_DECIMALS])]);
+    return [
+      this.ensureAta(from, k.d, to),
+      new TransactionInstruction({ programId: TOKEN_2022, data, keys: [W(this.ata(k.d, from)), R(k.d), W(this.ata(k.d, to)), S(from, false), ...this.hookAccounts(m, [from, to])] }),
+    ];
   }
   drip(mint: PublicKey, owner: PublicKey) {
     return this.pda([Buffer.from("drip"), mint.toBuffer(), owner.toBuffer()], this.faucetId);
@@ -158,9 +180,11 @@ export class CouponVault {
   keys(m: MarketDeployment) {
     const x = new PublicKey(m.xMint), p = new PublicKey(m.pMint), d = new PublicKey(m.dMint);
     const lp = m.lpMint ? new PublicKey(m.lpMint) : null;
+    const pLp = m.pLpMint ? new PublicKey(m.pLpMint) : null;
     const market = this.market(x);
     const pool = this.pool(d);
-    return { x, p, d, lp, market, pool };
+    const pPool = this.pool(p);
+    return { x, p, d, lp, pLp, market, pool, pPool };
   }
   private ix(pid: PublicKey, data: Buffer, keys: AccountMeta[]) {
     return new TransactionInstruction({ programId: pid, keys, data });
@@ -204,30 +228,38 @@ export class CouponVault {
   }
 
   // ---------- coupon_market ----------
-  tradeKeys(user: PublicKey, m: MarketDeployment) {
+  /** Traded mint, pool and LP mint for one side of a market: "d" coupon or "p" share. */
+  side(m: MarketDeployment, side: Side = "d") {
     const k = this.keys(m);
-    if (!k.lp) throw new Error(`${m.symbol} has no pool`);
+    return side === "d" ? { mint: k.d, pool: k.pool, lp: k.lp } : { mint: k.p, pool: k.pPool, lp: k.pLp };
+  }
+  tradeKeys(user: PublicKey, m: MarketDeployment, side: Side = "d") {
+    const k = this.keys(m);
+    const t = this.side(m, side);
+    if (!t.lp) throw new Error(`${m.symbol} has no ${side === "d" ? "coupon" : "share"} pool`);
     return [
-      S(user), R(this.marketConfig), W(k.pool), R(k.d), R(this.usdc), W(this.ata(k.d, k.pool)), W(this.ata(this.usdc, k.pool)), W(k.lp),
-      W(this.ata(k.d, user)), W(this.ata(this.usdc, user)), W(this.ata(k.lp, user)), R(TOKEN_2022), R(SystemProgram.programId), R(this.vaultId),
+      S(user), R(this.marketConfig), W(t.pool), R(t.mint), R(this.usdc), W(this.ata(t.mint, t.pool)), W(this.ata(this.usdc, t.pool)), W(t.lp),
+      W(this.ata(t.mint, user)), W(this.ata(this.usdc, user)), W(this.ata(t.lp, user)), R(TOKEN_2022), R(SystemProgram.programId), R(this.vaultId),
       R(this.config), W(k.market), W(this.pos(k.market, user)), R(k.x), R(k.p), W(this.ata(k.x, user)), W(this.ata(k.x, this.auth)), R(this.auth),
+      ...(side === "d" ? this.hookAccounts(m, [user, t.pool]) : []),
     ];
   }
-  private tradeIx(user: PublicKey, m: MarketDeployment, tag: number, args: bigint[]) {
+  private tradeIx(user: PublicKey, m: MarketDeployment, tag: number, args: bigint[], side: Side) {
     const k = this.keys(m);
-    return [...this.userAtas(user, [k.x, k.d, this.usdc, k.lp]), this.ix(this.marketId, Buffer.concat([Buffer.from([tag]), ...args.map(u64)]), this.tradeKeys(user, m))];
+    const t = this.side(m, side);
+    return [...this.userAtas(user, [k.x, t.mint, this.usdc, t.lp]), this.ix(this.marketId, Buffer.concat([Buffer.from([tag]), ...args.map(u64)]), this.tradeKeys(user, m, side))];
   }
-  swapSell(user: PublicKey, m: MarketDeployment, dIn: bigint, minUsdcOut: bigint) {
-    return this.tradeIx(user, m, MarketIx.SwapSell, [dIn, minUsdcOut]);
+  swapSell(user: PublicKey, m: MarketDeployment, dIn: bigint, minUsdcOut: bigint, side: Side = "d") {
+    return this.tradeIx(user, m, MarketIx.SwapSell, [dIn, minUsdcOut], side);
   }
-  swapBuy(user: PublicKey, m: MarketDeployment, usdcIn: bigint, minDOut: bigint) {
-    return this.tradeIx(user, m, MarketIx.SwapBuy, [usdcIn, minDOut]);
+  swapBuy(user: PublicKey, m: MarketDeployment, usdcIn: bigint, minDOut: bigint, side: Side = "d") {
+    return this.tradeIx(user, m, MarketIx.SwapBuy, [usdcIn, minDOut], side);
   }
-  addLiquidity(user: PublicKey, m: MarketDeployment, dIn: bigint, usdcMax: bigint, minLp: bigint) {
-    return this.tradeIx(user, m, MarketIx.AddLiquidity, [dIn, usdcMax, minLp]);
+  addLiquidity(user: PublicKey, m: MarketDeployment, dIn: bigint, usdcMax: bigint, minLp: bigint, side: Side = "d") {
+    return this.tradeIx(user, m, MarketIx.AddLiquidity, [dIn, usdcMax, minLp], side);
   }
-  removeLiquidity(user: PublicKey, m: MarketDeployment, lp: bigint, minD: bigint, minUsdc: bigint) {
-    return this.tradeIx(user, m, MarketIx.RemoveLiquidity, [lp, minD, minUsdc]);
+  removeLiquidity(user: PublicKey, m: MarketDeployment, lp: bigint, minD: bigint, minUsdc: bigint, side: Side = "d") {
+    return this.tradeIx(user, m, MarketIx.RemoveLiquidity, [lp, minD, minUsdc], side);
   }
 
   // ---------- admin (config, markets, pools, bump replay, seed mint) ----------
@@ -242,18 +274,20 @@ export class CouponVault {
   }
   initMarket(admin: PublicKey, m: MarketDeployment, fairMicro: bigint, maturitySecs: bigint) {
     const k = this.keys(m);
-    return this.ix(this.vaultId, Buffer.concat([Buffer.from([VaultIx.InitMarket]), u64(fairMicro), i64(maturitySecs)]), [S(admin), R(this.config), W(k.market), R(k.x), R(k.p), R(k.d), R(SystemProgram.programId)]);
+    return this.ix(this.vaultId, Buffer.concat([Buffer.from([VaultIx.InitMarket]), u64(fairMicro), i64(maturitySecs)]), [S(admin), R(this.config), W(k.market), R(k.x), R(k.p), R(k.d), R(SystemProgram.programId), W(this.metas(k.d))]);
   }
-  /** Opens a pool. `dMint` and `vaultMarket` are explicit so tests can try a fake coupon. */
-  initPool(admin: PublicKey, dMint: PublicKey, lpMint: PublicKey, vaultMarket: PublicKey, dRaw: bigint, usdcRaw: bigint) {
+  /** Opens a pool for a p or d mint. `dMint` and `vaultMarket` are explicit so tests can try a fake coupon;
+   *  pass `hook` (the market) when the mint is a d mint so the transfer hook accounts are included. */
+  initPool(admin: PublicKey, dMint: PublicKey, lpMint: PublicKey, vaultMarket: PublicKey, dRaw: bigint, usdcRaw: bigint, hook?: MarketDeployment) {
     const pool = this.pool(dMint);
     return [
       this.ensureAta(admin, dMint, pool),
       this.ensureAta(admin, this.usdc, pool),
       this.ensureAta(admin, lpMint, admin),
       this.ix(this.marketId, Buffer.concat([Buffer.from([MarketIx.InitPool]), u64(dRaw), u64(usdcRaw)]), [
-        S(admin), R(this.marketConfig), R(vaultMarket), R(dMint), R(this.usdc), W(pool), W(this.ata(dMint, pool)), W(this.ata(this.usdc, pool)), W(lpMint),
+        S(admin), R(this.marketConfig), W(vaultMarket), R(dMint), R(this.usdc), W(pool), W(this.ata(dMint, pool)), W(this.ata(this.usdc, pool)), W(lpMint),
         W(this.ata(dMint, admin)), W(this.ata(this.usdc, admin)), W(this.ata(lpMint, admin)), R(TOKEN_2022), R(SystemProgram.programId),
+        ...(hook ? this.hookAccounts(hook, [admin, pool]) : []),
       ]),
     ];
   }
@@ -268,7 +302,9 @@ export class CouponVault {
   // ---------- reads ----------
   async readMarket(conn: Connection, m: MarketDeployment) {
     const k = this.keys(m);
-    const [mk, xMint, pd, pu, lpMint] = await conn.getMultipleAccountsInfo([k.market, k.x, this.ata(k.d, k.pool), this.ata(this.usdc, k.pool), k.lp ?? k.d]);
+    const [mk, xMint, pd, pu, lpMint, pp, ppu, pLpMint] = await conn.getMultipleAccountsInfo([
+      k.market, k.x, this.ata(k.d, k.pool), this.ata(this.usdc, k.pool), k.lp ?? k.d, this.ata(k.p, k.pPool), this.ata(this.usdc, k.pPool), k.pLp ?? k.p,
+    ]);
     const d = mk?.data;
     const m12 = (v: bigint) => Number(v) / 1e12;
     return {
@@ -282,14 +318,22 @@ export class CouponVault {
       reserveD: pd ? pd.data.readBigUInt64LE(64) : 0n,
       reserveUsdc: pu ? pu.data.readBigUInt64LE(64) : 0n,
       lpSupply: k.lp && lpMint ? lpMint.data.readBigUInt64LE(36) : 0n,
+      reserveP: pp ? pp.data.readBigUInt64LE(64) : 0n,
+      reservePUsdc: ppu ? ppu.data.readBigUInt64LE(64) : 0n,
+      pLpSupply: k.pLp && pLpMint ? pLpMint.data.readBigUInt64LE(36) : 0n,
     };
   }
   async readPosition(conn: Connection, m: MarketDeployment, owner: PublicKey) {
     const k = this.keys(m);
-    const accts = [this.ata(k.x, owner), this.ata(k.p, owner), this.ata(k.d, owner), this.ata(this.usdc, owner), k.lp ? this.ata(k.lp, owner) : this.ata(k.d, owner), this.pos(k.market, owner)];
+    const accts = [this.ata(k.x, owner), this.ata(k.p, owner), this.ata(k.d, owner), this.ata(this.usdc, owner), k.lp ? this.ata(k.lp, owner) : this.ata(k.d, owner), this.pos(k.market, owner), k.pLp ? this.ata(k.pLp, owner) : this.ata(k.d, owner)];
     const r = await conn.getMultipleAccountsInfo(accts);
     const bal = (i: number) => (r[i] && r[i]!.data.length >= 72 ? r[i]!.data.readBigUInt64LE(64) : 0n);
-    return { x: bal(0), p: bal(1), d: bal(2), usdc: bal(3), lp: k.lp ? bal(4) : 0n, snap: r[5] ? Number(r[5].data.readBigUInt64LE(8)) / 1e12 : null };
+    const pos = r[5] && r[5].data.length >= 24 ? r[5].data : null;
+    return {
+      x: bal(0), p: bal(1), d: bal(2), usdc: bal(3), lp: k.lp ? bal(4) : 0n, pLp: k.pLp ? bal(6) : 0n,
+      snap: pos ? Number(pos.readBigUInt64LE(8)) / 1e12 : null,
+      owed: pos ? pos.readBigUInt64LE(16) : 0n, // income booked by the transfer hook, paid on the next claim
+    };
   }
   async readDrip(conn: Connection, mint: PublicKey, owner: PublicKey) {
     const a = await conn.getAccountInfo(this.drip(mint, owner));

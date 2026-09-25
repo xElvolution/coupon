@@ -8,6 +8,7 @@ crate-type = ["cdylib", "lib"]
 
 [features]
 no-entrypoint = []
+fixed-maturity = []
 
 [dependencies]
 solana-program = { workspace = true }

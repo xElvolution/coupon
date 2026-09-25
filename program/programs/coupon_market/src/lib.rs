@@ -1,12 +1,16 @@
-//! coupon_market: one constant product pool per coupon (d/USDC).
+//! coupon_market: constant product pools against USDC for both halves of a split: the coupon (d)
+//! and the share (p). Same code path for both.
 //!
 //! Accounts (PDAs of this program):
-//!   config  ["config"]        admin, USDC mint
-//!   pool    ["pool", d_mint]  vault market, x, d and LP mints, bump. Owns both reserve token
-//!                             accounts (its associated token accounts) and is the LP mint authority.
+//!   config  ["config"]      admin, USDC mint
+//!   pool    ["pool", mint]  vault market, x, traded mint (p or d), LP mint, bump. Owns both reserve
+//!                           token accounts (its associated token accounts) and is the LP mint authority.
 //!
-//! Only genuine coupons get pools: the d mint's mint authority must be coupon_vault's auth PDA
-//! (derived from VAULT_ID) and the coupon_vault market account must list that d mint.
+//! Only genuine COUPON tokens get pools: the mint authority must be coupon_vault's auth PDA
+//! (derived from VAULT_ID) and the coupon_vault market account must list the mint as its p or d.
+//!
+//! d mints carry a Token-2022 transfer hook (coupon_vault). Every d transfer this program makes
+//! appends the hook accounts the client passes after the fixed accounts.
 //!
 //! Claim accounting: coupon income is tracked per holder by a multiplier snapshot in coupon_vault.
 //! Before every swap or liquidity move changes a user's d balance, this program CPIs coupon_vault
@@ -92,20 +96,25 @@ fn init_config(pid: &Pubkey, a: &[AccountInfo]) -> ProgramResult {
     Ok(())
 }
 
-/// Genuine coupon check: vault market lists this d mint and the vault auth PDA is its authority.
-fn check_coupon(vault_market: &AccountInfo, d_mint: &AccountInfo) -> Result<coupon_vault::Market, ProgramError> {
+/// Genuine token check: the vault market lists this mint as its p or d and the vault auth PDA is
+/// its mint authority. Returns the market and whether the mint is the coupon (d).
+fn check_coupon(vault_market: &AccountInfo, mint: &AccountInfo) -> Result<(coupon_vault::Market, bool), ProgramError> {
     let vm = load_market(vault_market, &VAULT_ID).map_err(|_| ProgramError::from(E::NotCoupon))?;
     let (vault_auth, _) = Pubkey::find_program_address(&[b"auth"], &VAULT_ID);
-    let mi = read_mint(d_mint)?;
-    if &vm.d != d_mint.key || mi.authority != Some(vault_auth) {
+    let mi = read_mint(mint)?;
+    let is_d = &vm.d == mint.key;
+    if !(is_d || &vm.p == mint.key) || mi.authority != Some(vault_auth) {
         return Err(E::NotCoupon.into());
     }
-    Ok(vm)
+    Ok((vm, is_d))
+}
+fn infos<'a>(base: &[&AccountInfo<'a>], extra: &[AccountInfo<'a>]) -> Vec<AccountInfo<'a>> {
+    base.iter().map(|a| (*a).clone()).chain(extra.iter().cloned()).collect()
 }
 
-/// 1 init_pool(d_amount, usdc_amount): opens the pool at the admin's seed ratio.
-/// [0 admin s w, 1 config, 2 vault_market, 3 d_mint, 4 usdc_mint, 5 pool w, 6 pool_d w, 7 pool_usdc w,
-///  8 lp_mint w, 9 admin_d w, 10 admin_usdc w, 11 admin_lp w, 12 token, 13 system]
+/// 1 init_pool(amount, usdc_amount): opens the pool at the admin's seed ratio. Works for d and p.
+/// [0 admin s w, 1 config, 2 vault_market, 3 mint (p or d), 4 usdc_mint, 5 pool w, 6 pool_d w, 7 pool_usdc w,
+///  8 lp_mint w, 9 admin_d w, 10 admin_usdc w, 11 admin_lp w, 12 token, 13 system, 14.. hook accounts for d]
 fn init_pool(pid: &Pubkey, a: &[AccountInfo], d_amt: u64, u_amt: u64) -> ProgramResult {
     let [admin, config, vmarket, dm, usdc, pool, pool_d, pool_u, lp, ad, au, alp, tok, sys, ..] = a else { return Err(ProgramError::NotEnoughAccountKeys) };
     let cfg = load_config(config, pid)?;
@@ -115,7 +124,8 @@ fn init_pool(pid: &Pubkey, a: &[AccountInfo], d_amt: u64, u_amt: u64) -> Program
     }
     expect_key(usdc, &cfg.usdc)?;
     expect_key(tok, &TOKEN_2022)?;
-    let vm = check_coupon(vmarket, dm)?;
+    let (vm, _) = check_coupon(vmarket, dm)?;
+    let extra = &a[14..];
     if d_amt == 0 || u_amt == 0 {
         return Err(E::ZeroAmount.into());
     }
@@ -141,7 +151,7 @@ fn init_pool(pid: &Pubkey, a: &[AccountInfo], d_amt: u64, u_amt: u64) -> Program
         d[104..136].copy_from_slice(lp.key.as_ref());
         d[136] = pb;
     }
-    invoke(&ix_transfer(ad.key, dm.key, pool_d.key, admin.key, d_amt, X_DECIMALS), &[ad.clone(), dm.clone(), pool_d.clone(), admin.clone()])?;
+    invoke(&ix_transfer_extra(ad.key, dm.key, pool_d.key, admin.key, d_amt, X_DECIMALS, extra), &infos(&[ad, dm, pool_d, admin], extra))?;
     invoke(&ix_transfer(au.key, usdc.key, pool_u.key, admin.key, u_amt, USDC_DECIMALS), &[au.clone(), usdc.clone(), pool_u.clone(), admin.clone()])?;
     let lp_out = to64(isqrt(cm(d_amt as u128, u_amt as u128)?))?;
     invoke_signed(&ix_mint_to(lp.key, alp.key, pool.key, lp_out), &[lp.clone(), alp.clone(), pool.clone()], &[&[b"pool", dm.key.as_ref(), &[pb]]])?;
@@ -154,7 +164,8 @@ fn init_pool(pid: &Pubkey, a: &[AccountInfo], d_amt: u64, u_amt: u64) -> Program
 /// [0 user s w, 1 config, 2 pool w, 3 d_mint, 4 usdc_mint, 5 pool_d w, 6 pool_usdc w, 7 lp_mint w,
 ///  8 user_d w, 9 user_usdc w, 10 user_lp w, 11 token, 12 system, 13 vault_program,
 ///  14 vault_config, 15 vault_market w, 16 vault_pos w, 17 x_mint, 18 p_mint, 19 user_x w,
-///  20 vault_x w, 21 vault_auth]
+///  20 vault_x w, 21 vault_auth, 22.. hook accounts for d pools]
+/// For a p pool (mint = the share) there is no coupon income to settle, so the claim CPI is skipped.
 fn trade<'a>(pid: &Pubkey, a: &[AccountInfo<'a>], tag: u8, amount: u64, arg2: u64, arg3: u64) -> ProgramResult {
     let [user, config, pool, dm, usdc, pool_d, pool_u, lp, ud, uu, ulp, tok, sys, vprog, vconfig, vmarket, vpos, x, p, ux, vault_x, vauth, ..] = a else {
         return Err(ProgramError::NotEnoughAccountKeys);
@@ -179,8 +190,9 @@ fn trade<'a>(pid: &Pubkey, a: &[AccountInfo<'a>], tag: u8, amount: u64, arg2: u6
             return Err(E::BadAccount.into());
         }
     }
-    let vm = check_coupon(vmarket, dm)?;
-    if vm.maturity <= solana_program::clock::Clock::get().map(|c| c.unix_timestamp)? && (tag == ix::SWAP_BUY || tag == ix::ADD_LIQUIDITY) {
+    let (vm, is_d) = check_coupon(vmarket, dm)?;
+    let extra = &a[22..];
+    if is_d && vm.maturity <= solana_program::clock::Clock::get().map(|c| c.unix_timestamp)? && (tag == ix::SWAP_BUY || tag == ix::ADD_LIQUIDITY) {
         return Err(E::Matured.into());
     }
     let rd = check_ta(pool_d, dm.key, pool.key)?;
@@ -210,12 +222,14 @@ fn trade<'a>(pid: &Pubkey, a: &[AccountInfo<'a>], tag: u8, amount: u64, arg2: u6
         ],
         data: vec![coupon_vault::ix::CLAIM],
     };
-    invoke(&claim_ix, &[user.clone(), vconfig.clone(), vmarket.clone(), vpos.clone(), x.clone(), p.clone(), dm.clone(), ux.clone(), ud.clone(), vault_x.clone(), vauth.clone(), tok.clone(), sys.clone(), vprog.clone()])?;
+    if is_d {
+        invoke(&claim_ix, &[user.clone(), vconfig.clone(), vmarket.clone(), vpos.clone(), x.clone(), p.clone(), dm.clone(), ux.clone(), ud.clone(), vault_x.clone(), vauth.clone(), tok.clone(), sys.clone(), vprog.clone()])?;
+    }
 
     let seeds: &[&[u8]] = &[b"pool", dm.key.as_ref(), &[pb]];
-    let pay_d = |to: &AccountInfo<'a>, amt: u64| invoke_signed(&ix_transfer(pool_d.key, dm.key, to.key, pool.key, amt, X_DECIMALS), &[pool_d.clone(), dm.clone(), to.clone(), pool.clone()], &[seeds]);
+    let pay_d = |to: &AccountInfo<'a>, amt: u64| invoke_signed(&ix_transfer_extra(pool_d.key, dm.key, to.key, pool.key, amt, X_DECIMALS, extra), &infos(&[pool_d, dm, to, pool], extra), &[seeds]);
     let pay_u = |to: &AccountInfo<'a>, amt: u64| invoke_signed(&ix_transfer(pool_u.key, usdc.key, to.key, pool.key, amt, USDC_DECIMALS), &[pool_u.clone(), usdc.clone(), to.clone(), pool.clone()], &[seeds]);
-    let take_d = |amt: u64| invoke(&ix_transfer(ud.key, dm.key, pool_d.key, user.key, amt, X_DECIMALS), &[ud.clone(), dm.clone(), pool_d.clone(), user.clone()]);
+    let take_d = |amt: u64| invoke(&ix_transfer_extra(ud.key, dm.key, pool_d.key, user.key, amt, X_DECIMALS, extra), &infos(&[ud, dm, pool_d, user], extra));
     let take_u = |amt: u64| invoke(&ix_transfer(uu.key, usdc.key, pool_u.key, user.key, amt, USDC_DECIMALS), &[uu.clone(), usdc.clone(), pool_u.clone(), user.clone()]);
 
     match tag {

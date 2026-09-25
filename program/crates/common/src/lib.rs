@@ -180,6 +180,36 @@ pub fn read_scaled(mint: &AccountInfo, now: i64) -> Result<(u64, Pubkey), Progra
     Err(E::NoMultiplier.into())
 }
 
+/// Finds a Token-2022 extension (TLV after the account type byte at 165) in mint or token account data.
+pub fn find_ext(d: &[u8], ty: u16) -> Option<&[u8]> {
+    if d.len() < 166 {
+        return None;
+    }
+    let mut o = 166;
+    while o + 4 <= d.len() {
+        let t = u16::from_le_bytes([d[o], d[o + 1]]);
+        let l = u16::from_le_bytes([d[o + 2], d[o + 3]]) as usize;
+        o += 4;
+        if t == 0 || o + l > d.len() {
+            return None;
+        }
+        if t == ty {
+            return Some(&d[o..o + l]);
+        }
+        o += l;
+    }
+    None
+}
+pub const EXT_TRANSFER_HOOK: u16 = 14;
+pub const EXT_TRANSFER_HOOK_ACCOUNT: u16 = 15;
+/// spl-transfer-hook-interface Execute discriminator: sha256("spl-transfer-hook-interface:execute")[..8]
+pub const EXECUTE_DISC: [u8; 8] = [105, 37, 101, 197, 75, 251, 102, 26];
+
+/// Maturity gate shared by split and redeem: splitting stops and redeeming opens at maturity.
+pub fn matured(now: i64, maturity: i64) -> bool {
+    now >= maturity
+}
+
 // ---------- CPI builders ----------
 pub fn ix_transfer(src: &Pubkey, mint: &Pubkey, dst: &Pubkey, auth: &Pubkey, amount: u64, dec: u8) -> Instruction {
     let mut data = vec![12u8];
@@ -195,6 +225,14 @@ pub fn ix_transfer(src: &Pubkey, mint: &Pubkey, dst: &Pubkey, auth: &Pubkey, amo
         ],
         data,
     }
+}
+/// TransferChecked plus the accounts a transfer hook mint needs (ignored for mints without a hook).
+pub fn ix_transfer_extra(src: &Pubkey, mint: &Pubkey, dst: &Pubkey, auth: &Pubkey, amount: u64, dec: u8, extra: &[AccountInfo]) -> Instruction {
+    let mut i = ix_transfer(src, mint, dst, auth, amount, dec);
+    for e in extra {
+        i.accounts.push(if e.is_writable { AccountMeta::new(*e.key, false) } else { AccountMeta::new_readonly(*e.key, false) });
+    }
+    i
 }
 pub fn ix_mint_to(mint: &Pubkey, dst: &Pubkey, auth: &Pubkey, amount: u64) -> Instruction {
     let mut data = vec![7u8];
@@ -276,6 +314,54 @@ mod tests {
     fn isqrt_works() {
         assert_eq!(isqrt(1_000_000), 1000);
         assert_eq!(isqrt(1_000_001), 1000);
+    }
+    #[test]
+    fn maturity_gate() {
+        // clock override: redeem opens exactly at maturity, split closes there
+        let start = 1_780_000_000i64;
+        let maturity = start + 600;
+        assert!(!matured(start, maturity));
+        assert!(!matured(maturity - 1, maturity));
+        assert!(matured(maturity, maturity));
+        assert!(matured(maturity + 365 * 86_400, maturity));
+    }
+    #[test]
+    fn redeem_after_maturity_pays_share_value_and_final_claim() {
+        // split 50 at M0, one bump before maturity, frozen at m_final: share + final coupon never exceed the deposit
+        let a = 50_0000_0000u64;
+        let p = share_value(a, M0, M0).unwrap();
+        let m_final = 1_007_523_000_000u64;
+        let redeem = share_value(p, M0, m_final).unwrap();
+        let coupon = coupon_claim(p, M0, M0, m_final).unwrap();
+        assert!(redeem + coupon <= a);
+        assert!(a - redeem - coupon <= 2);
+        // UI value of the redeemed share equals the UI value deposited (base units kept)
+        let ui_in = a as u128 * M0 as u128 / SCALE;
+        let ui_out = redeem as u128 * m_final as u128 / SCALE;
+        assert!(ui_in.abs_diff(ui_out) <= 1);
+    }
+    #[test]
+    fn transfer_accrual_never_over_claims() {
+        // holder A has 100 d from M0; bump to m1; A sends 40 to B (B snapshot reset to m1); bump to m2
+        let m1 = 1_007_523_000_000u64;
+        let m2 = 1_009_334_000_000u64;
+        let owed_a = coupon_claim(100_0000_0000, M0, M0, m1).unwrap();
+        let a_later = coupon_claim(60_0000_0000, M0, m1, m2).unwrap();
+        let b_later = coupon_claim(40_0000_0000, M0, m1, m2).unwrap();
+        let all = coupon_claim(100_0000_0000, M0, M0, m2).unwrap();
+        assert!(owed_a + a_later + b_later <= all + 2);
+        // B claims nothing for the bump before it held the coupons
+        assert_eq!(coupon_claim(40_0000_0000, M0, m1, m1).unwrap(), 0);
+    }
+    #[test]
+    fn ext_parse() {
+        let mut d = vec![0u8; 166];
+        d[165] = 1;
+        d.extend_from_slice(&14u16.to_le_bytes());
+        d.extend_from_slice(&64u16.to_le_bytes());
+        d.extend_from_slice(&[7u8; 64]);
+        assert_eq!(find_ext(&d, 14).unwrap().len(), 64);
+        assert!(find_ext(&d, 15).is_none());
     }
     #[test]
     fn overflow_is_an_error() {
