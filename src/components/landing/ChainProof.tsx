@@ -45,7 +45,7 @@ export default function ChainProof() {
                 <div className="micro !text-[9px] text-dim">SPYx multiplier history</div>
                 <div className="display mt-2 text-3xl">What a dSPYx holder collected</div>
               </div>
-              <Link href="/app/replay" className="btn btn-line h-10 px-5 text-sm">Open replay <span>→</span></Link>
+              <Link href="/app/replay" className="btn btn-line h-11 px-5 text-sm">Open replay <span>→</span></Link>
             </div>
             <div className="mt-10 grid h-56 grid-cols-4 items-end gap-4 sm:gap-10">
               {(bumps.length ? bumps : [null, null, null, null]).map((b, i) => {

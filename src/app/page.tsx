@@ -126,19 +126,19 @@ export default function Home() {
           </div>
           <div className="text-sm">
             <div className="micro !text-[10px] text-faint">Product</div>
-            <div className="mt-4 flex flex-col gap-2 text-dim">
-              <Link href="/app/markets" className="hover:text-ink">Markets</Link>
-              <Link href="/app/split" className="hover:text-ink">Split</Link>
-              <Link href="/app/trade" className="hover:text-ink">Trade dividends</Link>
-              <Link href="/app/replay" className="hover:text-ink">Replay</Link>
+            <div className="mt-3 flex flex-col text-dim sm:mt-4 sm:gap-2">
+              <Link href="/app/markets" className="py-3 hover:text-ink sm:py-0">Markets</Link>
+              <Link href="/app/split" className="py-3 hover:text-ink sm:py-0">Split</Link>
+              <Link href="/app/trade" className="py-3 hover:text-ink sm:py-0">Trade dividends</Link>
+              <Link href="/app/replay" className="py-3 hover:text-ink sm:py-0">Replay</Link>
             </div>
           </div>
           <div className="text-sm">
             <div className="micro !text-[10px] text-faint">Data</div>
-            <div className="mt-4 flex flex-col gap-2 text-dim">
-              <a href="/api/markets" className="hover:text-ink">Markets API</a>
-              <a href="/api/chain?x=SPYx" className="hover:text-ink">SPYx chain read</a>
-              <a href="https://solscan.io/token/XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W" target="_blank" rel="noreferrer" className="hover:text-ink">SPYx on Solscan</a>
+            <div className="mt-3 flex flex-col text-dim sm:mt-4 sm:gap-2">
+              <a href="/api/markets" className="py-3 hover:text-ink sm:py-0">Markets API</a>
+              <a href="/api/chain?x=SPYx" className="py-3 hover:text-ink sm:py-0">SPYx chain read</a>
+              <a href="https://solscan.io/token/XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W" target="_blank" rel="noreferrer" className="py-3 hover:text-ink sm:py-0">SPYx on Solscan</a>
             </div>
           </div>
         </div>

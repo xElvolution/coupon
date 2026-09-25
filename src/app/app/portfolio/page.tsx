@@ -33,17 +33,17 @@ export default function Portfolio() {
 
   return (
     <div>
-      <PageHead kicker="Portfolio" title="Everything you hold," accent="split two ways." right={<button onClick={() => { if (confirm("Reset the paper ledger to its starting balances?")) L.reset(); }} className="btn btn-line h-9 px-4 text-xs">Reset ledger</button>} />
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <PageHead kicker="Portfolio" title="Everything you hold," accent="split two ways." right={<button onClick={() => { if (confirm("Reset the paper ledger to its starting balances?")) L.reset(); }} className="btn btn-line h-11 px-4 text-xs md:h-9">Reset ledger</button>} />
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4">
         {[
           ["Ledger value", usd(data ? total : null), "at live prices"],
           ["Cash", usd(L.state.cash), "paper USDC"],
           ["Coupons held, at bid", usd(data ? dVal : null), "d tokens"],
           ["Projected 12m income", usd(data ? proj : null), "from coupons you hold"],
         ].map(([a, b, c], i) => (
-          <motion.div key={a} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="card p-5">
+          <motion.div key={a} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className={`card min-w-0 p-4 sm:p-5 ${i === 0 || i === 3 ? "col-span-2 sm:col-span-1" : ""}`}>
             <div className="micro !text-[9px] text-dim">{a}</div>
-            <div className={`num mt-3 text-2xl ${i === 3 ? "text-lime" : "text-ink"}`}>{b}</div>
+            <div className={`num mt-3 whitespace-nowrap ${i === 0 ? "text-3xl sm:text-2xl" : "text-lg sm:text-2xl"} ${i === 3 ? "text-lime" : "text-ink"}`}>{b}</div>
             <div className="mt-1 text-xs text-faint">{c}</div>
           </motion.div>
         ))}
@@ -67,7 +67,7 @@ export default function Portfolio() {
               <div className="num text-sm text-share">{units(p.p, 4)}</div>
               <div className="num text-sm text-lime">{units(p.d, 4)}</div>
               <div className="num text-sm">{usd(v)}</div>
-              <div className="flex justify-end gap-2"><Link href={`/app/split?x=${x}`} className="btn btn-line h-8 px-3 text-xs">Split</Link><Link href={`/app/trade?x=${x}`} className="btn btn-lime h-8 px-3 text-xs">Trade</Link></div>
+              <div className="flex justify-end gap-2"><Link href={`/app/split?x=${x}`} className="btn btn-line h-11 px-4 text-xs md:h-8 md:px-3">Split</Link><Link href={`/app/trade?x=${x}`} className="btn btn-lime h-11 px-4 text-xs md:h-8 md:px-3">Trade</Link></div>
             </div>
           );
         })}
@@ -76,7 +76,7 @@ export default function Portfolio() {
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.3fr_1fr]">
         <div className="card overflow-hidden">
           <div className="border-b border-line px-6 py-4"><div className="display text-2xl">Receipts</div></div>
-          {L.state.receipts.length === 0 && <div className="px-6 py-10 text-center text-sm text-dim">No activity yet. <Link href="/app/split" className="text-lime">Split your first xStock</Link>.</div>}
+          {L.state.receipts.length === 0 && <div className="px-6 py-10 text-center text-sm text-dim">No activity yet. <Link href="/app/split" className="inline-flex min-h-11 items-center text-lime">Split your first xStock</Link>.</div>}
           {L.state.receipts.slice(0, 12).map((r) => (
             <div key={r.id} className="flex items-center justify-between gap-3 border-b border-line px-6 py-3.5 text-sm last:border-0">
               <div className="flex items-center gap-3">

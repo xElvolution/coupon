@@ -59,11 +59,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 pb-28 pt-8 sm:px-6 md:pb-16">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 md:pb-16">{children}</main>
       {/* mobile tab bar */}
-      <nav className="fixed inset-x-3 bottom-3 z-40 flex justify-around rounded-2xl border border-line-2 bg-surface/90 p-1.5 shadow-[0_10px_30px_-10px_rgba(0,0,0,.35)] backdrop-blur-md md:hidden">
+      <nav className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-40 flex justify-around rounded-2xl border border-line-2 bg-surface/90 p-1.5 shadow-[0_10px_30px_-10px_rgba(0,0,0,.35)] backdrop-blur-md md:hidden">
         {NAV.map((n) => (
-          <Link key={n.href} href={n.href} className={`relative flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] ${active(n.href) ? "text-bg" : "text-dim"}`}>
+          <Link key={n.href} href={n.href} className={`relative flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[10px] ${active(n.href) ? "text-bg" : "text-dim"}`}>
             {active(n.href) && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-xl bg-lime" />}
             <span className="relative"><Icon d={n.icon} /></span>
             <span className="relative">{n.label}</span>

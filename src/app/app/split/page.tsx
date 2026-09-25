@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useMarkets } from "@/components/useMarkets";
 import { useLedger } from "@/components/useLedger";
 import { useReceiptFlow } from "@/components/app/useReceiptFlow";
-import { AmountField, PageHead, PaperNote, ReceiptModal, Row, Seg, TickerChips } from "@/components/app/ui";
+import { AmountField, PageHead, PaperNote, ReceiptModal, Row, Seg, StickyAction, TickerChips } from "@/components/app/ui";
 import { Rosette } from "@/components/Guilloche";
 import { units, usd, pct } from "@/lib/format";
 
@@ -28,19 +28,21 @@ function SplitInner() {
   }, [max]);
 
   const go = () => {
+    if (bad) return;
     const r = mode === "split" ? L.split(x, n, mult) : L.redeem(x, n, mult);
     flow.open(r);
     setAmt("");
   };
 
+  const cta = n <= 0 ? "Enter an amount" : n > max + 1e-9 ? "Not enough balance" : mode === "split" ? `Split ${units(n, 2)} ${x}` : `Recombine into ${x}`;
   return (
-    <div>
+    <div className="pb-40 md:pb-0">
       <PageHead kicker="Split" title="Tear off" accent="the coupon." sub="Deposit an xStock. Get a share token that keeps the base units and a dividend token that collects every multiplier bump for 12 months." />
-      <div className="mt-8 grid gap-5 lg:grid-cols-[1.05fr_1fr]">
-        <div className="card p-6 sm:p-7">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:mt-8 lg:grid-cols-[1.05fr_1fr] lg:gap-5">
+        <div className="card min-w-0 p-5 sm:p-7">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Seg options={[["split", "Split"], ["redeem", "Recombine"]]} value={mode} onChange={setMode} />
-            <span className="micro !text-[9px] text-share">Paper ledger</span>
+            <span className="micro hidden !text-[9px] text-share sm:inline">Paper ledger</span>
           </div>
           <div className="mt-5"><TickerChips markets={paying} value={x} onChange={setX} /></div>
           <div className="mt-5">
@@ -65,34 +67,35 @@ function SplitInner() {
             <Row k="Projected 12m dividend units" v={m ? `${units(n * m.trailingYield, 6)} ${x}` : "…"} accent />
             <Row k="Coupon value at bid" v={m?.bid != null ? usd(n * m.bid) : "…"} />
           </div>
-          <button disabled={bad} onClick={go} className="btn btn-lime mt-6 h-[52px] w-full text-[15px]">
-            {n <= 0 ? "Enter an amount" : n > max + 1e-9 ? "Not enough balance" : mode === "split" ? `Split ${units(n, 2)} ${x}` : `Recombine into ${x}`}
-          </button>
+          <button disabled={bad} onClick={go} className="btn btn-lime mt-6 hidden h-[52px] w-full text-[15px] md:flex">{cta}</button>
           <div className="mt-4"><PaperNote /></div>
         </div>
 
-        <div className="flex flex-col gap-5">
-          <div className="card relative overflow-hidden p-6 sm:p-7">
+        <div className="flex min-w-0 flex-col gap-4 lg:gap-5">
+          <div className="card relative min-w-0 overflow-hidden p-5 sm:p-7">
             <Rosette size={420} spin className="pointer-events-none absolute -right-28 -top-28 text-lime" opacity={0.07} />
             <div className="micro !text-[9px] text-dim">Your {x} ledger</div>
-            <div className="mt-5 grid grid-cols-3 gap-3">
+            <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
               {[[x, pos.x, "text-ink"], [`p${x}`, pos.p, "text-share"], [`d${x}`, pos.d, "text-lime"]].map(([k, v, c]) => (
-                <div key={k as string} className="rounded-2xl border border-line bg-bg/60 p-4">
-                  <div className="num text-xs text-dim">{k as string}</div>
+                <div key={k as string} className="min-w-0 rounded-2xl border border-line bg-bg/60 p-3 sm:p-4">
+                  <div className="num truncate text-xs text-dim">{k as string}</div>
                   <motion.div key={String(v)} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={`num mt-2 text-xl ${c}`}>{units(v as number, 2)}</motion.div>
                 </div>
               ))}
             </div>
             <div className="mt-6 text-sm text-dim">Owner <span className="num text-ink">{L.owner === "guest" ? "guest session" : `${L.owner.slice(0, 4)}…${L.owner.slice(-4)}`}</span></div>
           </div>
-          <div className="card p-6 sm:p-7">
+          <div className="card min-w-0 p-5 sm:p-7">
             <div className="micro !text-[9px] text-dim">How d{x} gets paid</div>
-            <div className="display mt-3 text-2xl">Extra units = base units × (new − old multiplier)</div>
+            <div className="display mt-3 text-xl sm:text-2xl">Extra units = base units × (new − old multiplier)</div>
             <p className="mt-3 text-sm leading-relaxed text-dim">When Backed applies a dividend, the {x} multiplier steps up. The vault releases the added units to d{x} holders pro rata. {m && m.bumps.length > 0 && <>The last {x} bump took the multiplier from <span className="num text-ink">{m.bumps[m.bumps.length - 1].prev.toFixed(6)}</span> to <span className="num text-ink">{m.bumps[m.bumps.length - 1].next.toFixed(6)}</span>.</>}</p>
             <div className="mt-5 flex items-center justify-between rounded-xl border border-line bg-bg/60 px-4 py-3 text-sm"><span className="text-dim">Trailing 12m, onchain</span><span className="num text-lime">{pct(m?.trailingYield, 3)}</span></div>
           </div>
         </div>
       </div>
+      <StickyAction label={mode === "split" ? "You get" : "You receive"} value={mode === "split" ? `${units(n, 2)} p + d` : `${units(n, 2)} ${x}`} accent>
+        <button disabled={bad} onClick={go} className="btn btn-lime h-[52px] w-full text-[15px]">{cta}</button>
+      </StickyAction>
       <ReceiptModal r={flow.receipt} devnet={flow.devnet} onRetry={flow.retry} onClose={flow.close} />
     </div>
   );

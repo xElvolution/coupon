@@ -19,7 +19,7 @@ export default function WalletButton({ compact = false }: { compact?: boolean })
   }, []);
   if (!mounted || !publicKey)
     return (
-      <button onClick={() => setVisible(true)} className={`btn btn-lime ${compact ? "px-4 py-2 text-sm" : "px-5 py-2.5 text-sm"}`}>
+      <button onClick={() => setVisible(true)} className={`btn btn-lime ${compact ? "h-11 px-4 text-sm md:h-10" : "h-11 px-5 text-sm"}`}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="14" rx="3" /><path d="M16 13h2M2 10h20" /></svg>
         {connecting ? "Connecting" : "Connect wallet"}
       </button>
@@ -27,7 +27,7 @@ export default function WalletButton({ compact = false }: { compact?: boolean })
   const addr = publicKey.toBase58();
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="btn btn-line px-3 py-2 text-sm">
+      <button onClick={() => setOpen((o) => !o)} className="btn btn-line h-11 px-3 text-sm md:h-10">
         {wallet?.adapter.icon && <img src={wallet.adapter.icon} alt="" className="h-5 w-5 rounded" />}
         <span className="num">{short(addr)}</span>
         <span className="h-2 w-2 rounded-full bg-lime" />

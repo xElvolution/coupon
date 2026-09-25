@@ -37,7 +37,7 @@ export default function Calculator() {
             <label htmlFor="amt" className="micro text-dim">SPYx you hold</label>
             <div className="num text-4xl text-ink sm:text-5xl">{amt}</div>
           </div>
-          <input id="amt" type="range" min={1} max={500} value={amt} onChange={(e) => setAmt(Number(e.target.value))} className="mt-8" style={{ ["--fill" as string]: `${((amt - 1) / 499) * 100}%` }} />
+          <input id="amt" type="range" min={1} max={500} value={amt} onChange={(e) => setAmt(Number(e.target.value))} className="mt-8 h-11" style={{ ["--fill" as string]: `${((amt - 1) / 499) * 100}%` }} />
           <div className="num mt-3 flex justify-between text-[11px] text-faint"><span>1</span><span>250</span><span>500</span></div>
 
           <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line">

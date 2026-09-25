@@ -61,8 +61,8 @@ function ReplayInner() {
 
   return (
     <div>
-      <PageHead kicker="Replay · chain proof" title="What a coupon" accent="would have paid." sub="Pick a real dividend bump. We recompute exactly what a holder received, straight from the multiplier values, and show the live mint account we read it from." right={<button onClick={load} className="btn btn-line h-9 px-4 text-xs">{busy ? "Reading…" : "Re-read chain"}</button>} />
-      <div className="mt-6"><TickerChips markets={paying} value={x} onChange={setX} /></div>
+      <PageHead kicker="Replay · chain proof" title="What a coupon" accent="would have paid." sub="Pick a real dividend bump. We recompute exactly what a holder received, straight from the multiplier values, and show the live mint account we read it from." right={<button onClick={load} className="btn btn-line h-11 px-4 text-xs md:h-9">{busy ? "Reading…" : "Re-read chain"}</button>} />
+      <div className="mt-6"><TickerChips page markets={paying} value={x} onChange={setX} /></div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_1fr]">
         <div className="card relative overflow-hidden p-7 sm:p-9">
@@ -71,9 +71,9 @@ function ReplayInner() {
             <div className="micro !text-[9px] text-dim">{b ? `Dividend bump · ${dateUTC(b.at)} · ${new Date(b.at).toISOString().slice(11, 16)} UTC` : "Reading history"}</div>
             <p className="display mt-5 text-[clamp(1.6rem,3.2vw,2.5rem)] leading-[1.15]">
               At this bump, a holder of{" "}
-              <span className="inline-flex items-baseline rounded-lg border border-line-2 bg-bg px-2">
-                <input aria-label="Units held" value={holding} onChange={(e) => setHolding(Math.max(0, Math.min(1e7, Number(e.target.value.replace(/[^0-9.]/g, "")) || 0)))} className="num w-[4.2ch] bg-transparent text-center text-lime outline-none" />
-              </span>{" "}
+              <label className="relative inline-flex cursor-text items-baseline rounded-lg border border-line-2 bg-bg px-2 before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']">
+                <input aria-label="Units held" inputMode="decimal" value={holding} onChange={(e) => setHolding(Math.max(0, Math.min(1e7, Number(e.target.value.replace(/[^0-9.]/g, "")) || 0)))} className="num h-[1.4em] w-[4.2ch] bg-transparent text-center text-lime outline-none" />
+              </label>{" "}
               {x} received <span className="text-lime"><RollingNumber value={extra != null ? units(extra, 8) : "0.00000000"} /></span> {x}.
             </p>
             <p className="mt-4 text-lg text-dim">A d{x} holder would have received exactly that, worth <span className="num text-ink">{usd(extra != null && m?.xPrice ? extra * m.xPrice : null)}</span> at today&apos;s live price.</p>
@@ -125,8 +125,8 @@ function ReplayInner() {
           </div>
           {c?.ok && (
             <div className="flex gap-2">
-              <a href={`https://solscan.io/token/${c.mint}`} target="_blank" rel="noreferrer" className="btn btn-line h-9 px-4 text-xs">Solscan ↗</a>
-              <a href={`https://explorer.solana.com/address/${c.mint}`} target="_blank" rel="noreferrer" className="btn btn-line h-9 px-4 text-xs">Explorer ↗</a>
+              <a href={`https://solscan.io/token/${c.mint}`} target="_blank" rel="noreferrer" className="btn btn-line h-11 px-4 text-xs md:h-9">Solscan ↗</a>
+              <a href={`https://explorer.solana.com/address/${c.mint}`} target="_blank" rel="noreferrer" className="btn btn-line h-11 px-4 text-xs md:h-9">Explorer ↗</a>
             </div>
           )}
         </div>

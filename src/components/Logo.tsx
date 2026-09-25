@@ -12,7 +12,7 @@ export function Mark({ size = 26, tick = false }: { size?: number; tick?: boolea
 
 export default function Logo({ href = "/" }: { href?: string }) {
   return (
-    <Link href={href} className="group flex items-center gap-2.5" aria-label="COUPON home">
+    <Link href={href} className="group -my-2 flex min-h-11 items-center gap-2.5 py-2" aria-label="COUPON home">
       <Mark tick />
       <span className="display text-[23px] leading-none">Coupon</span>
     </Link>

@@ -21,7 +21,7 @@ export default function SiteNav() {
           <a href="#proof" className="transition-colors hover:text-ink">Chain proof</a>
           <Link href="/app/markets" className="transition-colors hover:text-ink">Markets</Link>
         </nav>
-        <Link href="/app" className="btn btn-lime h-10 px-5 text-sm">Open app <span className="arr">→</span></Link>
+        <Link href="/app" className="btn btn-lime h-11 px-5 text-sm md:h-10">Open app <span className="arr">→</span></Link>
       </div>
     </header>
   );

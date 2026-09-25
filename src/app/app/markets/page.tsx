@@ -26,7 +26,7 @@ export default function Markets() {
                 <div className="text-sm text-dim">S&amp;P 500 · highest onchain dividend stream</div>
               </div>
             </div>
-            <Link href="/app/trade?x=SPYx" className="btn btn-lime h-10 px-5 text-sm">Trade <span className="arr">→</span></Link>
+            <Link href="/app/trade?x=SPYx" className="btn btn-lime h-11 px-5 text-sm md:h-10">Trade <span className="arr">→</span></Link>
           </div>
           <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-4">
             {[
@@ -70,8 +70,8 @@ export default function Markets() {
             <div className="col-span-2 flex justify-end gap-2 lg:col-span-1">
               {m && m.trailingYield > 0 ? (
                 <>
-                  <Link href={`/app/split?x=${m.x}`} className="btn btn-line h-9 px-3.5 text-xs">Split</Link>
-                  <Link href={`/app/trade?x=${m.x}`} className="btn btn-lime h-9 px-3.5 text-xs">Trade</Link>
+                  <Link href={`/app/split?x=${m.x}`} className="btn btn-line h-11 px-4 text-xs md:h-9 md:px-3.5">Split</Link>
+                  <Link href={`/app/trade?x=${m.x}`} className="btn btn-lime h-11 px-4 text-xs md:h-9 md:px-3.5">Trade</Link>
                 </>
               ) : m ? <span className="text-xs text-faint">No dividend stream</span> : null}
             </div>

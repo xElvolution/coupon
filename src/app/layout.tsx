@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "@solana/wallet-adapter-react-ui/styles.css";
@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   title: "COUPON · Sell next year's dividends today",
   description: "COUPON splits xStocks on Solana into principal and a 12 month dividend claim you can sell for cash today.",
 };
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#0a0b0d" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
