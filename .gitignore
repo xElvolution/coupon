@@ -7,5 +7,4 @@ next-env.d.ts
 program/target/
 .deploy/localnet*
 AGENTS.md
-CLAUDE.md
 .next-*/
