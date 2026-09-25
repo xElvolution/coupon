@@ -1,4 +1,5 @@
 "use client";
+import Sk from "@/components/Sk";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PublicKey } from "@solana/web3.js";
@@ -30,7 +31,7 @@ export default function FaucetPage() {
     const cm = v.markets[symbol];
     if (!cm) return;
     const k = v.vault.keys(cm.dep);
-    await v.run(`Claim ${FAUCET_X} test ${symbol}`, v.vault.faucet(v.owner, k.x), (sig) => ({ action: "faucet", symbol, sig, at: Date.now(), title: "Faucet paid", lines: [["Token", `Test ${symbol} · devnet`], ["Multiplier (mirrors mainnet)", cm.multiplier?.toFixed(9) ?? "…"], ["Received", `${units(FAUCET_X, 2)} ${symbol}`]] }));
+    await v.run(`Claim ${FAUCET_X} test ${symbol}`, v.vault.faucet(v.owner, k.x), (sig) => ({ action: "faucet", symbol, sig, at: Date.now(), title: "Faucet paid", lines: [["Token", `Test ${symbol} · devnet`], ["Multiplier (mirrors mainnet)", cm.multiplier?.toFixed(9) ?? "not read"], ["Received", `${units(FAUCET_X, 2)} ${symbol}`]] }));
   };
 
   const tokens = [
@@ -53,7 +54,7 @@ export default function FaucetPage() {
               <div className="micro !text-[9px] text-dim">Connected · devnet</div>
               <a href={explorerAddr(v.owner.toBase58())} target="_blank" rel="noreferrer" className="num mt-1 inline-flex min-h-11 items-center text-ink hover:text-lime">{short(v.owner.toBase58(), 6, 6)} ↗</a>
             </div>
-            <div className="flex items-baseline gap-2"><span className="micro !text-[9px] text-dim">Gas</span><span className="num text-xl">{v.sol != null ? units(v.sol, 4) : "…"}</span><span className="text-sm text-dim">SOL</span></div>
+            <div className="flex items-baseline gap-2"><span className="micro !text-[9px] text-dim">Gas</span><span className="num text-xl">{v.sol != null ? units(v.sol, 4) : <Sk />}</span><span className="text-sm text-dim">SOL</span></div>
           </div>
         )}
         <GasNote sol={v.sol} />
@@ -66,13 +67,13 @@ export default function FaucetPage() {
           const m = get(t.symbol);
           const noMarket = t.symbol !== "USDC" && !v.markets[t.symbol]?.exists;
           return (
-            <motion.div key={t.symbol} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className={`card flex min-w-0 flex-col p-5 ${t.symbol === "USDC" ? "sm:col-span-2 lg:col-span-1" : ""}`}>
+            <motion.div key={t.symbol} initial={{ y: 12 }} animate={{ y: 0 }} transition={{ delay: i * 0.03 }} className={`card flex min-w-0 flex-col p-5 ${t.symbol === "USDC" ? "sm:col-span-2 lg:col-span-1" : ""}`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   {m ? <TokenDot m={m} size={40} /> : <span className="num flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-lime/40 bg-lime/10 text-[10px] text-lime">USDC</span>}
                   <div className="min-w-0"><div className="num text-ink">{t.symbol}</div><div className="truncate text-xs text-dim">{t.name} · devnet test</div></div>
                 </div>
-                <div className="text-right"><div className="micro !text-[8px] text-faint">Balance</div><div className="num text-lg">{v.owner ? units(t.bal, 2) : "…"}</div></div>
+                <div className="text-right"><div className="micro !text-[8px] text-faint">Balance</div><div className="num text-lg">{v.owner ? units(t.bal, 2) : <Sk />}</div></div>
               </div>
               <div className="mt-4 space-y-1.5 text-xs">
                 <div className="flex justify-between gap-3"><span className="text-dim">Per claim</span><span className="num">{units(t.amount, 0)} {t.symbol}</span></div>

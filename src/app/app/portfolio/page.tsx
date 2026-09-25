@@ -1,4 +1,5 @@
 "use client";
+import Sk from "@/components/Sk";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -8,6 +9,7 @@ import { useMarkets } from "@/components/useMarkets";
 import { useVault } from "@/components/useVault";
 import { GasNote, PageHead, TestNote, TokenDot, TxModal } from "@/components/app/ui";
 import { units, usd, short } from "@/lib/format";
+import { getJSON } from "@/lib/api";
 import { USDC_DECIMALS, X_DECIMALS, fromRaw } from "@/lib/vault/sdk";
 import { explorerAddr, explorerTx } from "@/lib/vault/deployment";
 
@@ -22,7 +24,7 @@ export default function Portfolio() {
   useEffect(() => {
     if (!publicKey) { setChain({ state: "idle", h: [] }); return; }
     setChain({ state: "loading", h: [] });
-    fetch(`/api/holdings?owner=${publicKey.toBase58()}`).then((r) => r.json()).then((j) => setChain(j.ok ? { state: "ok", h: j.holdings } : { state: "err", h: [] })).catch(() => setChain({ state: "err", h: [] }));
+    getJSON<{ ok: boolean; holdings: typeof chain.h }>(`/api/holdings?owner=${publicKey.toBase58()}`).then((j) => setChain(j.ok ? { state: "ok", h: j.holdings } : { state: "err", h: [] })).catch(() => setChain({ state: "err", h: [] }));
   }, [publicKey]);
 
   const f = (b: bigint) => fromRaw(b, X_DECIMALS);
@@ -56,12 +58,12 @@ export default function Portfolio() {
       {v.owner && <div className="mt-6"><GasNote sol={v.sol} /></div>}
       <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4">
         {[
-          ["Devnet holdings", usd(v.owner && data ? total : null), "valued at live mainnet prices"],
-          ["Test USDC", v.owner ? usd(cash) : "…", "devnet"],
-          ["Coupons, at pool price", usd(v.owner && data ? dVal : null), "d tokens"],
-          ["Projected 12m income", usd(v.owner && data ? proj : null), claim > 0 ? `${usd(claim)} claimable now` : "from coupons you hold"],
+          ["Devnet holdings", v.owner ? usd(data ? total : null) : "Connect wallet", "valued at live mainnet prices"],
+          ["Test USDC", v.owner ? usd(cash) : "Connect wallet", "devnet"],
+          ["Coupons, at pool price", v.owner ? usd(data ? dVal : null) : "Connect wallet", "d tokens"],
+          ["Projected 12m income", v.owner ? usd(data ? proj : null) : "Connect wallet", claim > 0 ? `${usd(claim)} claimable now` : "from coupons you hold"],
         ].map(([a, b, c], i) => (
-          <motion.div key={a} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className={`card min-w-0 p-4 sm:p-5 ${i === 0 || i === 3 ? "col-span-2 sm:col-span-1" : ""}`}>
+          <motion.div key={String(a)} initial={{ y: 14 }} animate={{ y: 0 }} transition={{ delay: i * 0.05 }} className={`card min-w-0 p-4 sm:p-5 ${i === 0 || i === 3 ? "col-span-2 sm:col-span-1" : ""}`}>
             <div className="micro !text-[9px] text-dim">{a}</div>
             <div className={`num mt-3 whitespace-nowrap ${i === 0 ? "text-3xl sm:text-2xl" : "text-lg sm:text-2xl"} ${i === 3 ? "text-lime" : "text-ink"}`}>{b}</div>
             <div className="mt-1 text-xs text-faint">{c}</div>
@@ -114,7 +116,7 @@ export default function Portfolio() {
           <p className="mt-2 text-sm text-dim">Real xStock balances for your connected address, read from Solana mainnet. COUPON never moves mainnet tokens.</p>
           <div className="mt-5">
             {!publicKey && <div className="rounded-xl border border-dashed border-line-2 px-4 py-6 text-center text-sm text-dim">Connect a wallet to read your xStocks.</div>}
-            {chain.state === "loading" && <div className="text-sm text-dim">Reading mainnet…</div>}
+            {chain.state === "loading" && <div className="text-sm text-dim">Reading mainnet</div>}
             {chain.state === "err" && <div className="text-sm text-dim">Mainnet read failed. Try again shortly.</div>}
             {chain.state === "ok" && chain.h.length === 0 && <div className="rounded-xl border border-line px-4 py-4 text-sm text-dim">No xStocks found at {short(publicKey!.toBase58())} on mainnet.</div>}
             {chain.h.map((h) => (

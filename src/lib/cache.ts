@@ -26,3 +26,12 @@ export async function getSnapshot(maxAgeMs = 20_000): Promise<SnapshotResponse> 
   }
   return inflight;
 }
+
+/** Last good snapshot for server rendering: never waits more than `waitMs` for a cold read. */
+export async function getSnapshotFast(waitMs = 3500): Promise<SnapshotResponse | null> {
+  if (last) {
+    if (Date.now() - last.at > 20_000) getSnapshot().catch(() => {});
+    return last.data;
+  }
+  return Promise.race([getSnapshot().catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), waitMs))]);
+}

@@ -1,4 +1,5 @@
 "use client";
+import Sk from "@/components/Sk";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -40,7 +41,7 @@ function SplitInner() {
     if (mode === "split") {
       const ok = await v.run(`Split ${units(n, 2)} ${x}`, v.vault.split(v.owner, dep, raw), (sig) => ({
         action: "split", symbol: x, sig, at: Date.now(), title: "Split confirmed",
-        lines: [["Deposited", `${units(n, 4)} ${x}`], ["Multiplier recorded", mult?.toFixed(9) ?? "…"], ["Received", `${units(minted, 4)} p${x} + ${units(minted, 4)} d${x}`]],
+        lines: [["Deposited", `${units(n, 4)} ${x}`], ["Multiplier recorded", mult?.toFixed(9) ?? "not read"], ["Received", `${units(minted, 4)} p${x} + ${units(minted, 4)} d${x}`]],
       }));
       if (ok) setAmt("");
     } else {
@@ -55,7 +56,7 @@ function SplitInner() {
     if (!v.vault || !v.owner || !cm) return;
     await v.run(`Claim d${x} income`, (pos.dAccounts.filter((a) => a.claimable > 0n).length ? pos.dAccounts.filter((a) => a.claimable > 0n) : [{ key: v.vault.ata(v.vault.keys(cm.dep).d, v.owner) }]).flatMap((a, i) => { const ix = v.vault!.claim(v.owner!, cm.dep, a.key); return i === 0 ? [v.vault!.ensureAta(v.owner!, v.vault!.keys(cm.dep).x, v.owner!), ...ix] : ix; }), (sig) => ({
       action: "claim", symbol: x, sig, at: Date.now(), title: "Income claimed",
-      lines: [["Coupon", `${units(fromRaw(pos.d, X_DECIMALS), 4)} d${x}`], ["Multiplier now", mult?.toFixed(9) ?? "…"], ["Received", `${units(claimable, 8)} ${x}`]],
+      lines: [["Coupon", `${units(fromRaw(pos.d, X_DECIMALS), 4)} d${x}`], ["Multiplier now", mult?.toFixed(9) ?? "not read"], ["Received", `${units(claimable, 8)} ${x}`]],
     }));
   };
 
@@ -88,9 +89,9 @@ function SplitInner() {
             )}
           </div>
           <div className="mt-5 divide-y divide-line border-t border-line">
-            <Row k="Test mint multiplier (mirrors mainnet)" v={mult?.toFixed(9) ?? "…"} />
-            <Row k="Vault base multiplier" v={mBase?.toFixed(9) ?? "…"} />
-            <Row k="Projected 12m dividend units" v={m ? `${units(n * m.trailingYield, 6)} ${x}` : "…"} accent />
+            <Row k="Test mint multiplier (mirrors mainnet)" v={mult?.toFixed(9) ?? <Sk />} />
+            <Row k="Vault base multiplier" v={mBase?.toFixed(9) ?? <Sk />} />
+            <Row k="Projected 12m dividend units" v={m ? `${units(n * m.trailingYield, 6)} ${x}` : <Sk />} accent />
           </div>
           <div className="mt-6 hidden md:block">{btn()}</div>
           <div className="mt-4 space-y-3"><GasNote sol={v.sol} /><TestNote /></div>
@@ -107,14 +108,14 @@ function SplitInner() {
               {[[x, pos.x, "text-ink"], [`p${x}`, pos.p, "text-share"], [`d${x}`, pos.d, "text-lime"]].map(([k, val, c]) => (
                 <div key={k as string} className="min-w-0 rounded-2xl border border-line bg-bg/60 p-3 sm:p-4">
                   <div className="num truncate text-xs text-dim">{k as string}</div>
-                  <motion.div key={String(val)} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={`num mt-2 truncate text-xl ${c}`}>{v.owner ? units(fromRaw(val as bigint, X_DECIMALS), 2) : "…"}</motion.div>
+                  <motion.div key={String(val)} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={`num mt-2 truncate text-xl ${c}`}>{v.owner ? units(fromRaw(val as bigint, X_DECIMALS), 2) : <Sk />}</motion.div>
                 </div>
               ))}
             </div>
             <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-lime/25 bg-lime/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <div className="micro !text-[9px] text-lime">Claimable coupon income</div>
-                <div className="num mt-1.5 text-xl text-ink">{v.owner ? `${units(claimable, 8)} ${x}` : "…"}</div>
+                <div className="num mt-1.5 text-xl text-ink">{v.owner ? `${units(claimable, 8)} ${x}` : <Sk />}</div>
                 <div className="mt-1 text-xs text-dim">{pos.snap ? `Since multiplier ${pos.snap.toFixed(9)}` : "Snapshot starts at your first split"}</div>
               </div>
               <button onClick={claim} disabled={!v.owner || pos.claimable === 0n || v.tx.state === "signing" || v.tx.state === "confirming"} className="btn btn-line h-11 shrink-0 px-5 text-sm">Claim</button>

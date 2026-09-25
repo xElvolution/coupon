@@ -1,4 +1,6 @@
 "use client";
+import { TOKEN_LOGOS } from "@/lib/token-logos";
+import Sk from "@/components/Sk";
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -27,7 +29,7 @@ export function Stub({ label, year, div, active, className = "" }: { label: stri
       </div>
       <div className="flex items-center justify-between">
         <span className={`h-1.5 w-1.5 rounded-full ${div ? (active ? "bg-bg" : "bg-lime") : "bg-transparent"}`} />
-        <span className="num text-[8px] opacity-70">{div ? "DIV" : ""}</span>
+        <span className="num text-[8px] opacity-70">{div ? "DIV" : "\u00a0"}</span>
       </div>
     </div>
   );
@@ -89,7 +91,7 @@ export default function TearCard() {
               <WaveBand className="pointer-events-none absolute inset-x-0 top-0 h-9 w-full text-share" opacity={0.18} />
               <Rosette size={260} className="pointer-events-none absolute -right-20 -top-10 text-share" opacity={0.12} rings={4} />
               <div className="relative flex items-center justify-between">
-                <span className="micro text-share">Tokenized equity</span>
+                <span className="flex items-center gap-2">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={TOKEN_LOGOS.SPYx} alt="SPYx" width={20} height={20} className="inline-block rounded-full" style={{ width: 20, height: 20 }} /><span className="micro text-share">Tokenized equity</span></span>
                 <span className="num text-[10px] text-faint">{spy ? short(spy.mint, 4, 4) : "XsoC…DF2W"}</span>
               </div>
               <div className="relative mt-5 h-[64px] sm:h-[78px]">
@@ -100,7 +102,7 @@ export default function TearCard() {
               <div className="relative mt-5 grid grid-cols-2 gap-3 border-t border-dashed border-line-2 pt-4">
                 <div>
                   <div className="micro !text-[9px] text-faint">Multiplier</div>
-                  <div className="num mt-1 text-sm text-ink">{spy?.multiplier?.toFixed(6) ?? "…"}</div>
+                  <div className="num mt-1 text-sm text-ink">{spy?.multiplier?.toFixed(6) ?? <Sk />}</div>
                 </div>
                 <div>
                   <div className="micro !text-[9px] text-faint">SPYx price</div>

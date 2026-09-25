@@ -1,4 +1,5 @@
 "use client";
+import Sk from "@/components/Sk";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -76,10 +77,10 @@ function TradeInner() {
         <div className="card min-w-0 p-5 sm:p-7">
           <div className="mb-5 flex items-center justify-between gap-3 border-b border-line pb-5 lg:hidden">
             <div className="flex min-w-0 items-center gap-3">
-              {m && <TokenDot m={m} size={40} />}
+              {m && <TokenDot m={m} size={40} badge={kind} />}
               <div className="min-w-0">
                 <div className="display text-2xl leading-none">{tk}</div>
-                <div className="mt-1 truncate text-xs text-dim">{m?.name ?? "…"} · devnet pool</div>
+                <div className="mt-1 truncate text-xs text-dim">{m?.name ?? <Sk />} · devnet pool</div>
               </div>
             </div>
             <div className="grid shrink-0 grid-cols-2 gap-x-4 text-right">
@@ -110,10 +111,10 @@ function TradeInner() {
             </AnimatePresence>
             <div className="mt-4 divide-y divide-line border-t border-line">
               <Row k="Average price" v={exec ? usd(exec, 4) : usd(mid, 4)} />
-              <Row k="Price impact" v={impact != null ? pct(impact, 2) : "…"} />
-              <Row k={`Minimum received · ${pct(slip, 1)} slippage`} v={n > 0 ? (side === "sell" ? usd(fromRaw(minRaw, USDC_DECIMALS)) : `${units(fromRaw(minRaw, X_DECIMALS), 4)} ${tk}`) : "…"} />
+              <Row k="Price impact" v={impact != null ? pct(impact, 2) : "Enter an amount"} />
+              <Row k={`Minimum received · ${pct(slip, 1)} slippage`} v={n > 0 ? (side === "sell" ? usd(fromRaw(minRaw, USDC_DECIMALS)) : `${units(fromRaw(minRaw, X_DECIMALS), 4)} ${tk}`) : "Enter an amount"} />
               <Row k="Pool fee" v={pct(FEE_BPS / 10_000, 2)} />
-              {side === "buy" && kind === "d" && <Row k="Projected units, 12m" v={m ? `${units(out * m.trailingYield, 6)} ${x}` : "…"} accent />}
+              {side === "buy" && kind === "d" && <Row k="Projected units, 12m" v={m ? `${units(out * m.trailingYield, 6)} ${x}` : <Sk />} accent />}
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
               <span className="text-xs text-dim">Slippage tolerance</span>
@@ -138,20 +139,20 @@ function TradeInner() {
         <div className="flex min-w-0 flex-col gap-4 lg:gap-5">
           <div className="card min-w-0 p-5 sm:p-7">
             <div className="hidden items-center gap-3 lg:flex">
-              {m && <TokenDot m={m} size={44} />}
+              {m && <TokenDot m={m} size={44} badge={kind} />}
               <div>
                 <div className="display text-3xl">{tk}</div>
-                <div className="text-sm text-dim">{kind === "d" ? "12 month dividend coupon" : "Share: base units, no dividends for 12 months"} on {m?.name ?? "…"}</div>
+                <div className="text-sm text-dim">{kind === "d" ? "12 month dividend coupon" : "Share: base units, no dividends for 12 months"} on {m?.name ?? <Sk />}</div>
               </div>
             </div>
             <div className="micro !text-[9px] text-dim lg:mt-7">Pool depth · devnet</div>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {[
-                [`${tk} reserve`, cm ? units(fromRaw(rTok, X_DECIMALS), 2) : "…"],
-                ["USDC reserve", cm ? units(fromRaw(rUsd, USDC_DECIMALS), 2) : "…"],
+                [`${tk} reserve`, cm ? units(fromRaw(rTok, X_DECIMALS), 2) : <Sk />],
+                ["USDC reserve", cm ? units(fromRaw(rUsd, USDC_DECIMALS), 2) : <Sk />],
                 ["Depth", usd(depthUsd, 0)],
               ].map(([a, b], i) => (
-                <div key={a} className={`min-w-0 rounded-xl border border-line bg-bg/50 px-4 py-3 ${i === 2 ? "col-span-2 sm:col-span-1" : ""}`}>
+                <div key={String(a)} className={`min-w-0 rounded-xl border border-line bg-bg/50 px-4 py-3 ${i === 2 ? "col-span-2 sm:col-span-1" : ""}`}>
                   <div className="truncate text-xs text-dim">{a}</div>
                   <div className="num mt-1 truncate text-lg">{b}</div>
                 </div>
@@ -173,7 +174,7 @@ function TradeInner() {
                     ["Pool price", usd(mid, 2), mid && fair ? `${pct(mid / fair - 1, 1)} vs fair` : "onchain"],
                   ]
               ).map(([a, b, c], i) => (
-                <motion.div key={a} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className={`flex min-h-[52px] items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-sm ${i === 2 ? "border-lime/35 bg-lime/[0.06]" : "border-line bg-bg/50"}`}>
+                <motion.div key={a} initial={{ x: -8 }} animate={{ x: 0 }} transition={{ delay: i * 0.05 }} className={`flex min-h-[52px] items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-sm ${i === 2 ? "border-lime/35 bg-lime/[0.06]" : "border-line bg-bg/50"}`}>
                   <span className="min-w-0">
                     <span className="block text-dim">{a}</span>
                     {c && <span className="num block text-[10px] text-faint">{c}</span>}

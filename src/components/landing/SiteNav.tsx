@@ -12,7 +12,7 @@ export default function SiteNav() {
     return () => window.removeEventListener("scroll", f);
   }, []);
   return (
-    <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${solid ? "border-b border-line bg-bg/60 backdrop-blur-[14px]" : "border-b border-transparent"}`}>
+    <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 border-b ${solid ? "border-line" : "border-line/60"} bg-[#0A0B0D]/85 backdrop-blur-[14px]`}>
       <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-5 sm:px-8">
         <Logo />
         <nav className="hidden items-center gap-8 text-sm text-dim md:flex">

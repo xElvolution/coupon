@@ -6,12 +6,14 @@ import { VaultProvider } from "./useVault";
 import { RPC_URL } from "@/lib/vault/deployment";
 
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+import type { SnapshotResponse } from "@/lib/types";
+
+export default function Providers({ children, initial }: { children: React.ReactNode; initial?: SnapshotResponse | null }) {
   return (
     <ConnectionProvider endpoint={RPC_URL}>
       <WalletProvider wallets={[]} autoConnect>
         <WalletModalProvider>
-          <MarketsProvider>
+          <MarketsProvider initial={initial}>
             <VaultProvider>{children}</VaultProvider>
           </MarketsProvider>
         </WalletModalProvider>

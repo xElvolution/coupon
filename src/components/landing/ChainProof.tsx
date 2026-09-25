@@ -1,4 +1,5 @@
 "use client";
+import Sk from "@/components/Sk";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMarkets } from "../useMarkets";
@@ -26,11 +27,11 @@ export default function ChainProof() {
 
         <div className="mt-14 grid gap-px overflow-hidden rounded-[20px] border border-line bg-line md:grid-cols-3">
           {[
-            ["Multiplier now", spy?.multiplier?.toFixed(9) ?? "…", spy ? `Mint ${short(spy.mint, 4, 4)} · mainnet` : "Reading mainnet"],
-            ["Delivered since launch", pct(spy?.sinceLaunch, 3), `${bumps.length || "…"} dividend bumps, net of withholding`],
-            ["Last bump, 100 SPYx", last ? `+${units(100 * (last.next / last.prev - 1), 8)}` : "…", last ? `${dateUTC(last.at)} · ${usd(spy?.xPrice ? spy.xPrice * 100 * (last.next / last.prev - 1) : null)} at today's price` : "…"],
+            ["Multiplier now", spy?.multiplier?.toFixed(9) ?? <Sk />, spy ? `Mint ${short(spy.mint, 4, 4)} · mainnet` : "Reading mainnet"],
+            ["Delivered since launch", pct(spy?.sinceLaunch, 3), bumps.length ? `${bumps.length} dividend bumps, net of withholding` : <Sk />],
+            ["Last bump, 100 SPYx", last ? `+${units(100 * (last.next / last.prev - 1), 8)}` : <Sk />, last ? `${dateUTC(last.at)} · ${usd(spy?.xPrice ? spy.xPrice * 100 * (last.next / last.prev - 1) : null)} at today's price` : <Sk />],
           ].map(([a, b, c]) => (
-            <div key={a} className="bg-surface p-7">
+            <div key={String(a)} className="bg-surface p-7">
               <div className="micro !text-[9px] text-dim">{a}</div>
               <div className="num mt-3 text-2xl text-ink sm:text-[28px]">{b}</div>
               <div className="mt-2 text-sm text-faint">{c}</div>
@@ -54,7 +55,7 @@ export default function ChainProof() {
                   <div key={i} className="flex h-full flex-col justify-end">
                     <div className="num mb-2 text-center text-xs text-lime">{b ? `+${units(100 * step, 4)}` : ""}</div>
                     <motion.div style={{ height: b ? `${(step / maxStep) * 76}%` : "6%", originY: 1 }} whileInView={{ scaleY: [0.15, 1] }} viewport={{ once: true }} transition={{ duration: 1.1, delay: 0.12 * i, ease: [0.16, 1, 0.3, 1] }} className="rounded-t-md bg-gradient-to-t from-lime/30 to-lime" />
-                    <div className="num mt-3 border-t border-line pt-2 text-center text-[11px] text-dim">{b ? dateUTC(b.at) : "…"}</div>
+                    <div className="num mt-3 border-t border-line pt-2 text-center text-[11px] text-dim">{b ? dateUTC(b.at) : <Sk />}</div>
                   </div>
                 );
               })}

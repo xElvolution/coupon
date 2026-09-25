@@ -1,4 +1,5 @@
 "use client";
+import Sk from "@/components/Sk";
 import { useMarkets } from "../useMarkets";
 import { usd, short, dateUTC, pct } from "@/lib/format";
 
@@ -6,18 +7,18 @@ export default function ProofStrip() {
   const { data } = useMarkets();
   const spy = data?.markets.find((m) => m.x === "SPYx");
   const last = spy?.bumps[spy.bumps.length - 1];
-  const items: [string, string][] = spy
+  const items: [string, React.ReactNode][] = spy
     ? [
         ["SPYx · live", usd(spy.xPrice)],
-        ["Pyth SPYx feed", spy.pythX ? `${usd(spy.pythX)} · ${dateUTC(spy.pythXPublish!)}` : "…"],
-        ["Multiplier", spy.multiplier?.toFixed(9) ?? "…"],
+        spy.pythX ? ["Pyth SPYx reference", `${usd(spy.pythX)} · ${dateUTC(spy.pythXPublish!)}`] : ["SPYx · Jupiter live", usd(spy.xPrice)],
+        ["Multiplier", spy.multiplier?.toFixed(9) ?? <Sk />],
         ["Div 12M", pct(spy.trailingYield, 3)],
-        ["Last bump", last ? `+${(100 * (last.next / last.prev - 1)).toFixed(6)} per 100 · ${dateUTC(last.at)}` : "…"],
+        ["Last bump", last ? `+${(100 * (last.next / last.prev - 1)).toFixed(6)} per 100 · ${dateUTC(last.at)}` : <Sk />],
         ["dSPYx bid", usd(spy.bid, 3)],
         ["Mint", short(spy.mint, 5, 5)],
         ...data!.markets.filter((m) => m.x !== "SPYx" && m.xPrice && m.trailingYield > 0).map((m) => [m.x, `${usd(m.xPrice)} · ${pct(m.trailingYield, 2)}`] as [string, string]),
       ]
-    : [["Reading Solana mainnet", "…"], ["Reading Pyth", "…"], ["SPYx", "…"], ["Multiplier", "…"]];
+    : [["SPYx · live", <Sk key="a" />], ["Pyth SPYx reference", <Sk key="b" />], ["Multiplier", <Sk key="c" />], ["Div 12M", <Sk key="d" />]];
   const row = (k: string) => (
     <div className="flex shrink-0 items-center" key={k} aria-hidden={k === "b"}>
       {items.map(([a, b], i) => (

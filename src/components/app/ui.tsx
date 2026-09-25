@@ -27,11 +27,31 @@ export function PageHead({ kicker, title, accent, sub, right }: { kicker: string
   );
 }
 
-export function TokenDot({ m, size = 36 }: { m: Pick<MarketSnapshot, "under" | "hue">; size?: number }) {
+import { TOKEN_LOGOS } from "@/lib/token-logos";
+const LOGOS = new Set(Object.keys(TOKEN_LOGOS));
+
+/** Official xStock logo (public/tokens, from each mint's metadata), with a small p or d badge for the split tokens. */
+export function TokenDot({ m, size = 36, badge }: { m: Pick<MarketSnapshot, "x" | "under" | "hue">; size?: number; badge?: "p" | "d" }) {
+  const b = Math.max(12, Math.round(size * 0.42));
   return (
-    <span className="relative inline-flex shrink-0 items-center justify-center rounded-full border border-line-2 bg-surface-2 text-[10px] font-semibold text-ink" style={{ width: size, height: size }}>
-      <span className="absolute inset-[3px] rounded-full opacity-35" style={{ background: m.hue }} />
-      <span className="relative num">{m.under.slice(0, 4)}</span>
+    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
+      {LOGOS.has(m.x) ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={TOKEN_LOGOS[m.x]} alt={m.x} width={size} height={size} className="rounded-full border border-line-2" style={{ width: size, height: size }} />
+      ) : (
+        <span className="relative inline-flex h-full w-full items-center justify-center rounded-full border border-line-2 bg-surface-2 text-[10px] font-semibold text-ink">
+          <span className="absolute inset-[3px] rounded-full opacity-35" style={{ background: m.hue }} />
+          <span className="relative num">{m.under.slice(0, 4)}</span>
+        </span>
+      )}
+      {badge && (
+        <span
+          className={`num absolute -bottom-0.5 -right-1 inline-flex items-center justify-center rounded-full border-2 border-bg font-semibold leading-none ${badge === "d" ? "bg-lime text-bg" : "bg-share text-bg"}`}
+          style={{ width: b, height: b, fontSize: Math.max(8, Math.round(b * 0.6)) }}
+        >
+          {badge}
+        </span>
+      )}
     </span>
   );
 }
@@ -42,7 +62,10 @@ export function TickerChips({ markets, value, onChange, page = false }: { market
       {markets.map((m) => (
         <button key={m.x} onClick={() => onChange(m.x)} aria-pressed={value === m.x} className={`relative flex h-11 shrink-0 snap-start items-center rounded-full border px-4 text-sm transition-colors sm:h-9 sm:px-3.5 ${value === m.x ? "border-lime text-bg" : "border-line-2 text-dim hover:border-line-2 hover:text-ink"}`}>
           {value === m.x && <motion.span layoutId="chip" className="absolute inset-0 rounded-full bg-lime" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
-          <span className="relative num">{m.x}</span>
+          <span className="relative inline-flex items-center gap-2">{LOGOS.has(m.x) && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={TOKEN_LOGOS[m.x]} alt="" width={18} height={18} className="rounded-full" style={{ width: 18, height: 18 }} />
+          )}<span className="num">{m.x}</span></span>
         </button>
       ))}
     </div>

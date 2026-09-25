@@ -40,7 +40,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const active = (h: string) => path === h || (h === "/app/markets" && path === "/app");
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-line bg-bg/75 backdrop-blur-[14px]">
+      <header className="sticky top-0 z-50 border-b border-line bg-[#0A0B0D]/85 backdrop-blur-[14px]">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-8">
             <Logo href="/" />

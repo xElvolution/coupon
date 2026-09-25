@@ -9,6 +9,8 @@ import { Rosette } from "../Guilloche";
 import { SELL_DISCOUNT } from "@/lib/markets";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
+// mobile address bar show/hide resizes the viewport; do not recompute every trigger for it
+ScrollTrigger.config({ ignoreMobileResize: true });
 
 const BEATS = [
   { k: "01", t: "Hold", b: "100 SPYx in your wallet. The dividends are real, but they arrive as multiplier bumps you cannot spend." },
@@ -34,7 +36,32 @@ export default function HoldSplitSell() {
     if (ready) requestAnimationFrame(() => ScrollTrigger.refresh());
   }, [ready, spy?.xPrice]);
   useEffect(() => {
-    document.fonts?.ready.then(() => ScrollTrigger.refresh());
+    const refresh = () => ScrollTrigger.refresh();
+    document.fonts?.ready.then(refresh);
+    window.addEventListener("load", refresh);
+    return () => window.removeEventListener("load", refresh);
+  }, []);
+  // Beat highlight: an IntersectionObserver on a band around the middle of the screen. Beats are
+  // fully visible by default; dimming only applies once the observer is running (data-io).
+  useEffect(() => {
+    const el = root.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const beats = Array.from(el.querySelectorAll<HTMLElement>(".hs-beat"));
+    const setBeat = (i: number) => beats.forEach((b, j) => b.classList.toggle("is-on", i === j));
+    setBeat(0);
+    const io = new IntersectionObserver(
+      (entries) => {
+        const hit = entries.filter((e) => e.isIntersecting).map((e) => beats.indexOf(e.target as HTMLElement));
+        if (hit.length) setBeat(Math.max(...hit));
+      },
+      { rootMargin: "-42% 0px -42% 0px", threshold: 0 },
+    );
+    beats.forEach((b) => io.observe(b));
+    el.dataset.io = "1";
+    return () => {
+      io.disconnect();
+      delete el.dataset.io;
+    };
   }, []);
   const bumpMonths = new Set((spy?.bumps ?? []).map((b) => new Date(b.at).getUTCMonth()));
 
@@ -45,17 +72,15 @@ export default function HoldSplitSell() {
       const render = () => {
         const v = vals.current;
         const e = q(".hs-est")[0], c = q(".hs-cash")[0], h = q(".hs-value")[0];
-        if (h) h.textContent = v.value ? fmt(v.value) : "…";
-        if (e) e.textContent = v.est ? fmt(v.est) : "…";
-        if (c) c.textContent = v.cash ? fmt(v.cash * p.cash) : "…";
+        if (h) h.textContent = v.value ? fmt(v.value) : "";
+        if (e) e.textContent = v.est ? fmt(v.est) : "";
+        if (c) c.textContent = v.cash ? fmt(v.cash * p.cash) : "";
       };
       renderRef.current = render;
-      const setBeat = (i: number) => q(".hs-beat").forEach((el, j) => el.classList.toggle("is-on", i === j));
       render();
-      setBeat(0);
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (reduce) {
-        p.est = 1; p.cash = 1; render(); setBeat(2);
+        p.est = 1; p.cash = 1; render();
         gsap.set(q(".hs-share"), { x: -20 });
         return;
       }
@@ -69,7 +94,6 @@ export default function HoldSplitSell() {
           start: "top 70%",
           end: "bottom 45%",
           scrub: 0.6,
-          onUpdate: (st) => setBeat(st.progress < 0.25 ? 0 : st.progress < 0.7 ? 1 : 2),
           invalidateOnRefresh: true,
         },
       });
@@ -102,9 +126,9 @@ export default function HoldSplitSell() {
             <h2 className="display h2 mt-5">Hold. Split. <em className="text-lime">Sell.</em></h2>
             <div className="mt-10 space-y-1">
               {BEATS.map((b) => (
-                <div key={b.k} className="hs-beat group relative rounded-2xl border border-transparent p-4 opacity-40 transition-all duration-500 [&.is-on]:border-line [&.is-on]:bg-surface/60 [&.is-on]:opacity-100">
+                <div key={b.k} className="hs-beat group relative rounded-2xl border border-transparent p-4">
                   <div className="flex items-baseline gap-4">
-                    <span className="num text-xs text-lime">{b.k}</span>
+                    <span className="hs-k num text-xs text-lime">{b.k}</span>
                     <span className="display text-3xl">{b.t}</span>
                   </div>
                   <p className="mt-2 max-w-md pl-9 text-[15px] leading-relaxed text-dim">{b.b}</p>
@@ -115,9 +139,9 @@ export default function HoldSplitSell() {
 
           <div className="card relative overflow-hidden p-5 sm:p-7">
             <div className="grid grid-cols-3 gap-3 border-b border-line pb-5">
-              <div><div className="micro !text-[9px] text-dim">100 SPYx value</div><div className="hs-value num mt-2 text-base text-ink sm:text-xl">…</div></div>
-              <div><div className="micro !text-[9px] text-dim">12m dividends</div><div className="hs-est num mt-2 text-base text-ink sm:text-xl">…</div></div>
-              <div><div className="micro !text-[9px] text-lime">Cash today</div><div className="hs-cash num mt-2 text-base text-lime sm:text-xl">…</div></div>
+              <div><div className="micro !text-[9px] text-dim">100 SPYx value</div><div className="hs-value num mt-2 text-base text-ink sm:text-xl">{ready ? fmt(vals.current.value) : ""}</div></div>
+              <div><div className="micro !text-[9px] text-dim">12m dividends</div><div className="hs-est num mt-2 text-base text-ink sm:text-xl">{ready ? fmt(vals.current.est) : ""}</div></div>
+              <div><div className="micro !text-[9px] text-lime">Cash today</div><div className="hs-cash num mt-2 text-base text-lime sm:text-xl">{ready ? fmt(0) : ""}</div></div>
             </div>
             <div className="relative mt-7 flex flex-col gap-0 sm:flex-row">
               <div className="hs-share relative w-full rounded-t-2xl border sm:w-[55%] sm:rounded-l-2xl sm:rounded-tr-none border-line-2 bg-surface-2 p-4">

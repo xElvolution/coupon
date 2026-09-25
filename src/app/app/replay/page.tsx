@@ -1,4 +1,5 @@
 "use client";
+import Sk from "@/components/Sk";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -8,6 +9,7 @@ import RollingNumber from "@/components/RollingNumber";
 import { Rosette } from "@/components/Guilloche";
 import { units, usd, dateUTC, short, pct } from "@/lib/format";
 import type { Bump } from "@/lib/types";
+import { getJSON } from "@/lib/api";
 
 interface ChainRead {
   ok: boolean;
@@ -41,8 +43,7 @@ function ReplayInner() {
   const load = useCallback(async () => {
     setBusy(true);
     try {
-      const r = await fetch(`/api/chain?x=${x}`, { cache: "no-store" });
-      setC(await r.json());
+      setC(await getJSON<ChainRead>(`/api/chain?x=${x}`));
     } catch {
       setC(null);
     } finally {
@@ -51,7 +52,7 @@ function ReplayInner() {
   }, [x]);
   useEffect(() => { setC(null); setSel(null); load(); const t = setInterval(load, 20000); return () => clearInterval(t); }, [load]);
 
-  const hist = c?.ok ? c.history : [];
+  const hist = c?.ok ? c.history : (m?.bumps ?? []); // server rendered history until the chain read lands
   const idx = sel ?? hist.length - 1;
   const b = hist[idx];
   const extra = b ? holding * (b.next / b.prev - 1) : null;
@@ -61,7 +62,7 @@ function ReplayInner() {
 
   return (
     <div>
-      <PageHead kicker="Replay · chain proof" title="What a coupon" accent="would have paid." sub="Pick a real dividend bump. We recompute exactly what a holder received, straight from the multiplier values, and show the live mint account we read it from." right={<button onClick={load} className="btn btn-line h-11 px-4 text-xs md:h-9">{busy ? "Reading…" : "Re-read chain"}</button>} />
+      <PageHead kicker="Replay · chain proof" title="What a coupon" accent="would have paid." sub="Pick a real dividend bump. We recompute exactly what a holder received, straight from the multiplier values, and show the live mint account we read it from." right={<button onClick={load} className="btn btn-line h-11 px-4 text-xs md:h-9">{busy ? "Reading chain" : "Re-read chain"}</button>} />
       <div className="mt-6"><TickerChips page markets={paying} value={x} onChange={setX} /></div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_1fr]">
@@ -78,11 +79,11 @@ function ReplayInner() {
             </p>
             <p className="mt-4 text-lg text-dim">A d{x} holder would have received exactly that, worth <span className="num text-ink">{usd(extra != null && m?.xPrice ? extra * m.xPrice : null)}</span> at today&apos;s live price.</p>
             <div className="mt-8 grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line">
-              <div className="bg-surface p-4"><div className="micro !text-[9px] text-dim">Previous</div><div className="num mt-2 text-sm text-ink sm:text-base">{b?.prev.toFixed(12) ?? "…"}</div></div>
-              <div className="bg-surface p-4"><div className="micro !text-[9px] text-dim">New</div><div className="num mt-2 text-sm text-ink sm:text-base">{b?.next.toFixed(12) ?? "…"}</div></div>
-              <div className="bg-surface p-4"><div className="micro !text-[9px] text-lime">Step</div><div className="num mt-2 text-sm text-lime sm:text-base">{b ? pct(b.next / b.prev - 1, 4) : "…"}</div></div>
+              <div className="bg-surface p-4"><div className="micro !text-[9px] text-dim">Previous</div><div className="num mt-2 text-sm text-ink sm:text-base">{b?.prev.toFixed(12) ?? <Sk />}</div></div>
+              <div className="bg-surface p-4"><div className="micro !text-[9px] text-dim">New</div><div className="num mt-2 text-sm text-ink sm:text-base">{b?.next.toFixed(12) ?? <Sk />}</div></div>
+              <div className="bg-surface p-4"><div className="micro !text-[9px] text-lime">Step</div><div className="num mt-2 text-sm text-lime sm:text-base">{b ? pct(b.next / b.prev - 1, 4) : <Sk />}</div></div>
             </div>
-            <div className="num mt-4 text-xs text-faint">extra = {holding} × ({b?.next.toFixed(6) ?? "new"} ÷ {b?.prev.toFixed(6) ?? "previous"} − 1) = {extra != null ? extra.toFixed(8) : "…"}</div>
+            <div className="num mt-4 text-xs text-faint">extra = {holding} × ({b?.next.toFixed(6) ?? "new"} ÷ {b?.prev.toFixed(6) ?? "previous"} − 1) = {extra != null ? extra.toFixed(8) : <Sk />}</div>
             {b && idx === hist.length - 1 && (
               <div className={`mt-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${fieldsMatch ? "border-lime/40 bg-lime/10 text-lime" : "border-line-2 text-dim"}`}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -101,7 +102,7 @@ function ReplayInner() {
             {hist.map((k, i) => {
               const on = i === idx;
               return (
-                <motion.button key={k.at} onClick={() => setSel(i)} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-colors ${on ? "border-lime/50 bg-lime/[0.07]" : "border-line hover:border-line-2"}`}>
+                <motion.button key={k.at} onClick={() => setSel(i)} initial={{ x: 10 }} animate={{ x: 0 }} transition={{ delay: i * 0.05 }} className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-colors ${on ? "border-lime/50 bg-lime/[0.07]" : "border-line hover:border-line-2"}`}>
                   <span className="num text-dim">{dateUTC(k.at)}</span>
                   <span className="num text-ink">+{units(holding * (k.next / k.prev - 1), 6)}</span>
                   <span className={`micro !text-[9px] ${on ? "text-lime" : "text-faint"}`}>{k.reason}</span>

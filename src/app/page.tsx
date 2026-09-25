@@ -1,4 +1,6 @@
 "use client";
+import { TOKEN_LOGOS } from "@/lib/token-logos";
+import Sk from "@/components/Sk";
 import { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -65,9 +67,9 @@ export default function Home() {
                 <a href="#trade" className="btn btn-line h-[52px] px-6 text-[15px]">See how coupons pay</a>
               </div>
               <div className="h-meta mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-line pt-5">
-                <div><div className="num text-lg text-ink">{usd(spy?.xPrice)}</div><div className="micro mt-1 !text-[9px] text-faint">SPYx · live</div></div>
+                <div><div className="num text-lg text-ink">{usd(spy?.xPrice)}</div><div className="micro mt-1 flex items-center gap-1.5 !text-[9px] text-faint">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={TOKEN_LOGOS.SPYx} alt="SPYx" width={14} height={14} className="inline-block rounded-full" style={{ width: 14, height: 14 }} />SPYx · live</div></div>
                 <div><div className="num text-lg text-lime">{pct(spy?.trailingYield, 3)}</div><div className="micro mt-1 !text-[9px] text-faint">Yield 12m</div></div>
-                <div><div className="num text-lg text-ink">{spy?.multiplier?.toFixed(5) ?? "…"}</div><div className="micro mt-1 !text-[9px] text-faint">Multiplier</div></div>
+                <div><div className="num text-lg text-ink">{spy?.multiplier?.toFixed(5) ?? <Sk />}</div><div className="micro mt-1 !text-[9px] text-faint">Multiplier</div></div>
               </div>
             </div>
             <TearCard />

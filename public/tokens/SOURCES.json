@@ -1,0 +1,38 @@
+{
+  "SPYx": {
+    "file": "public/tokens/SPYx.png",
+    "source": "token metadata https://xstocks-metadata.backed.fi/tokens/Solana/SPYx/metadata.json -> https://xstocks-metadata.backed.fi/logos/tokens/SPYx.png"
+  },
+  "MSFTx": {
+    "file": "public/tokens/MSFTx.png",
+    "source": "token metadata https://xstocks-metadata.backed.fi/tokens/Solana/MSFTx/metadata.json -> https://xstocks-metadata.backed.fi/logos/tokens/MSFTx.png"
+  },
+  "QQQx": {
+    "file": "public/tokens/QQQx.png",
+    "source": "token metadata https://xstocks-metadata.backed.fi/tokens/Solana/QQQx/metadata.json -> https://xstocks-metadata.backed.fi/logos/tokens/QQQx.png"
+  },
+  "AAPLx": {
+    "file": "public/tokens/AAPLx.png",
+    "source": "token metadata https://xstocks-metadata.backed.fi/tokens/Solana/AAPLx/metadata.json -> https://xstocks-metadata.backed.fi/logos/tokens/AAPLx.png"
+  },
+  "METAx": {
+    "file": "public/tokens/METAx.png",
+    "source": "token metadata https://xstocks-metadata.backed.fi/tokens/Solana/METAx/metadata.json -> https://xstocks-metadata.backed.fi/logos/tokens/METAx.png"
+  },
+  "GOOGLx": {
+    "file": "public/tokens/GOOGLx.png",
+    "source": "token metadata https://xstocks-metadata.backed.fi/tokens/Solana/GOOGLx/metadata.json -> https://xstocks-metadata.backed.fi/logos/tokens/GOOGLx.png"
+  },
+  "NVDAx": {
+    "file": "public/tokens/NVDAx.png",
+    "source": "token metadata https://xstocks-metadata.backed.fi/tokens/Solana/NVDAx/metadata.json -> https://xstocks-metadata.backed.fi/logos/tokens/NVDAx.png"
+  },
+  "TSLAx": {
+    "file": "public/tokens/TSLAx.png",
+    "source": "token metadata https://xstocks-metadata.backed.fi/tokens/Solana/TSLAx/metadata.json -> https://xstocks-metadata.backed.fi/logos/tokens/TSLAx.png"
+  },
+  "AMZNx": {
+    "file": "public/tokens/AMZNx.png",
+    "source": "token metadata https://xstocks-metadata.backed.fi/tokens/Solana/AMZNx/metadata.json -> https://xstocks-metadata.backed.fi/logos/tokens/AMZNx.png"
+  }
+}
