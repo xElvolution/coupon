@@ -1,7 +1,9 @@
 {
   "at": "2026-09-25T16:56:36.615Z",
   "tester": "Q5UF6ub1TGTYSv3sjR3vYZVktTUAHLVp19s4CHSZp1n",
-  "market": "3GR5cDp2QcXkXnMyXur2PgnqG9Sro6FJRgpRgdArYDP3",
+  "xMint": "3GR5cDp2QcXkXnMyXur2PgnqG9Sro6FJRgpRgdArYDP3",
+  "marketPda": "DLPQLvVcc8WNCCunr9xN9aPuyv3Br3xL8AuhS2QDDS7v",
+  "maturity": "2026-09-25T16:56:30Z",
   "maturitySecs": 600,
   "results": [
     {
