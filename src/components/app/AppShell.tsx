@@ -27,7 +27,7 @@ function Status() {
     <div className="hidden items-center gap-2 text-[11px] lg:flex">
       <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${ok ? "border-lime/25 bg-lime/10 text-lime" : "border-line-2 bg-surface text-dim"}`}>
         <span className={`live-dot h-1.5 w-1.5 rounded-full ${ok ? "bg-lime" : "bg-dim"}`} />
-        Pyth {data?.pythSource === "hermes" ? "live" : "onchain"} · {spy?.xPublish ? ago(spy.xPublish) : error ? "offline" : "…"}
+        {spy ? (spy.priceSource === "pyth" ? "Pyth live" : spy.priceSource === "jupiter" ? "Prices live" : "Pyth last update") : error ? "Prices offline" : "Prices …"}
       </span>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-line-2 bg-surface px-2.5 py-1 text-dim">Multipliers · Mainnet</span>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-share/30 bg-share/10 px-2.5 py-1 text-share">Vault · Paper ledger</span>

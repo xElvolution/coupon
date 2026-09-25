@@ -1,6 +1,6 @@
 "use client";
 import { useMarkets } from "../useMarkets";
-import { usd, short, dateUTC, pct, ago } from "@/lib/format";
+import { usd, short, dateUTC, pct } from "@/lib/format";
 
 export default function ProofStrip() {
   const { data } = useMarkets();
@@ -8,8 +8,8 @@ export default function ProofStrip() {
   const last = spy?.bumps[spy.bumps.length - 1];
   const items: [string, string][] = spy
     ? [
-        ["SPYx · Pyth", `${usd(spy.xPrice)} · ${ago(spy.xPublish)}`],
-        ["SPY · Pyth", `${usd(spy.equity)} · ${ago(spy.equityPublish)}`],
+        ["SPYx · live", usd(spy.xPrice)],
+        ["Pyth SPYx feed", spy.pythX ? `${usd(spy.pythX)} · ${dateUTC(spy.pythXPublish!)}` : "…"],
         ["Multiplier", spy.multiplier?.toFixed(9) ?? "…"],
         ["Div 12M", pct(spy.trailingYield, 3)],
         ["Last bump", last ? `+${(100 * (last.next / last.prev - 1)).toFixed(6)} per 100 · ${dateUTC(last.at)}` : "…"],

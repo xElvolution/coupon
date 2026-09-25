@@ -6,7 +6,7 @@ import Reveal from "./Reveal";
 const QA = [
   ["Where does the dividend actually come from?", "Backed reinvests each SPY dividend into SPYx by raising the Token-2022 multiplier on the mint. The increase between the old and new multiplier is the dividend. dSPYx is entitled to exactly that increase on the deposited base units for 12 months."],
   ["Why is the yield lower than SPY's headline yield?", "Because we only use what the chain shows. SPYx dividends are reinvested net of withholding tax, so the realized onchain yield is lower. We price coupons from the real bumps, never from a marketing number."],
-  ["What runs on Solana today?", "Prices come from Pyth (Hermes when an API key is configured, otherwise the Pyth price accounts on Solana mainnet, with publish time shown) and multipliers are read from the SPYx mint on Solana mainnet. The vault that splits, sells and redeems runs as a paper ledger for this release, clearly labeled in the app, while the devnet program is finished."],
+  ["What runs on Solana today?", "The SPYx price is the live Solana market price, cross checked against the Pyth SPYx feed (Hermes streams it when an API key is configured, otherwise we read the Pyth price account on Solana and show when it last updated). Multipliers are read from the SPYx mint on Solana mainnet. The vault that splits, sells and redeems runs as a paper ledger for this release, clearly labeled in the app, while the devnet program is finished."],
 ];
 
 function Item({ q, a }: { q: string; a: string }) {

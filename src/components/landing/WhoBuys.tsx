@@ -29,7 +29,7 @@ export default function WhoBuys() {
       </Reveal>
       <div className="mt-14 grid gap-5 md:grid-cols-2">
         <Reveal><Side tag="Seller · holds SPYx" title="Cash now, shares kept." body="Long term holders turn a year of slow multiplier drips into one payment today." points={["Keep 100% of index exposure through pSPYx", "Get paid upfront for income you would wait a year for", "Recombine p + d into SPYx whenever you want"]} /></Reveal>
-        <Reveal delay={0.08}><Side tag="Buyer · wants yield" title="Dividends at a discount." body="Buy dSPYx below fair value and collect every bump the issuer applies until maturity." points={["Pure income exposure, no need to own the index", "Payout set by the onchain multiplier, not a promise", "Priced off Pyth and the real bump history"]} /></Reveal>
+        <Reveal delay={0.08}><Side tag="Buyer · wants yield" title="Dividends at a discount." body="Buy dSPYx below fair value and collect every bump the issuer applies until maturity." points={["Pure income exposure, no need to own the index", "Payout set by the onchain multiplier, not a promise", "Priced off live prices and the real bump history"]} /></Reveal>
       </div>
     </section>
   );

@@ -103,7 +103,7 @@ export default function TearCard() {
                   <div className="num mt-1 text-sm text-ink">{spy?.multiplier?.toFixed(6) ?? "…"}</div>
                 </div>
                 <div>
-                  <div className="micro !text-[9px] text-faint">Pyth SPYx</div>
+                  <div className="micro !text-[9px] text-faint">SPYx price</div>
                   <div className="num mt-1 text-sm text-ink">{usd(spy?.xPrice)}</div>
                 </div>
               </div>
@@ -131,12 +131,14 @@ export default function TearCard() {
                 <Stub key={i} label={mo.label} year={mo.year} div={bumpMonths.has(mo.m)} active={i === active} className="h-[44px] md:h-[46px]" />
               ))}
             </div>
-            <div className="relative mt-3 flex items-end justify-between px-1">
+            <div className="relative mt-2 flex items-center justify-end gap-1.5 whitespace-nowrap px-1 text-[9px] text-faint"><span className="h-1.5 w-1.5 rounded-full bg-lime" /><span className="num">bumped last year</span></div>
+            <div className="relative mt-2 flex items-end justify-between px-1">
               <div>
-                <div className="micro !text-[9px] text-dim">Cash today · 100</div>
+                <div className="micro !text-[9px] text-dim">Cash today</div>
                 <div className="num text-lg text-lime">{usd(spy?.bid != null ? spy.bid * 100 : null)}</div>
+                <div className="text-[10px] leading-tight text-dim">for 100 SPYx, based on last year&apos;s payouts</div>
               </div>
-              <span className="num text-[9px] text-faint">DIV = last year&apos;s bump months</span>
+
             </div>
           </div>
         </div>

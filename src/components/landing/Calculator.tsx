@@ -28,7 +28,7 @@ export default function Calculator() {
           <div className="micro text-lime">Try it</div>
           <h2 className="display h2 mt-5">Price your coupon <em className="text-lime">in ten seconds.</em></h2>
         </div>
-        <p className="max-w-md text-dim md:justify-self-end">Pyth SPYx price. Yield taken from the last 12 months of real SPYx multiplier bumps on Solana, nothing assumed.</p>
+        <p className="max-w-md text-dim md:justify-self-end">Live SPYx price on Solana. Yield taken from the last 12 months of real SPYx multiplier bumps on Solana, nothing assumed.</p>
       </div>
 
       <div {...spot} className="card spot mt-12 grid overflow-hidden md:grid-cols-[1.1fr_1fr]">
@@ -59,7 +59,7 @@ export default function Calculator() {
           <div>
             <div className="micro text-lime">You receive today</div>
             <div className="mt-4 text-[40px] text-lime sm:text-[52px]"><RollingNumber value={cashStr} /></div>
-            <div className="mt-3 text-sm text-dim">After a {Math.round(SELL_DISCOUNT * 100)}% discount to fair value. You keep {amt} pSPYx and all price exposure.</div>
+            <div className="mt-3 text-sm text-dim">After an {Math.round(SELL_DISCOUNT * 100)}% discount to fair value. You keep {amt} pSPYx and all price exposure.</div>
           </div>
           <div className="relative mt-10 h-24">
             <AnimatePresence mode="popLayout">

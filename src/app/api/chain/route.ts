@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchScaled, fetchHistory, effectiveMultiplier } from "@/lib/server-data";
+import { fetchScaled, fetchHistory, effectiveMultiplier, cached } from "@/lib/server-data";
 import { MARKETS, MAINNET_RPC } from "@/lib/markets";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,10 @@ export async function GET(req: Request) {
   const x = new URL(req.url).searchParams.get("x") ?? "SPYx";
   const m = MARKETS.find((k) => k.x.toLowerCase() === x.toLowerCase()) ?? MARKETS[0];
   try {
-    const [sc, hist] = await Promise.all([fetchScaled([m.mint]), fetchHistory(m.x).catch(() => [])]);
+    const [{ sc, readAt }, hist] = await Promise.all([
+      cached(`chain:${m.mint}`, 15_000, async () => ({ sc: await fetchScaled([m.mint]), readAt: Date.now() })),
+      fetchHistory(m.x).catch(() => []),
+    ]);
     const c = sc[m.mint];
     if (!c) throw new Error("mint not found");
     const last = hist[hist.length - 1];
@@ -28,7 +31,7 @@ export async function GET(req: Request) {
         lastBump: last ?? null,
         replayPer100: last ? 100 * (last.next / last.prev - 1) : null,
         history: hist,
-        readAt: Date.now(),
+        readAt,
       },
       { headers: { "Cache-Control": "no-store" } },
     );

@@ -13,3 +13,9 @@ export const ago = (sec: number | null | undefined) => {
   if (s < 86400) return `${Math.round(s / 3600)}h ago`;
   return `${Math.round(s / 86400)}d ago`;
 };
+
+export type PriceSource = "pyth" | "jupiter" | "pyth-onchain" | "none";
+/** Short honest label for where the coupon price comes from. */
+export const srcLabel = (s?: PriceSource) => (s === "pyth" ? "Pyth live" : s === "jupiter" ? "Live · Solana" : s === "pyth-onchain" ? "Pyth last update" : "Loading");
+export const srcLong = (s?: PriceSource) =>
+  s === "pyth" ? "Pyth Hermes, live" : s === "jupiter" ? "Live Solana market price via Jupiter" : s === "pyth-onchain" ? "Pyth price account on Solana, last update" : "Loading";

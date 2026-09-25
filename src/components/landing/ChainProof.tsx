@@ -53,7 +53,7 @@ export default function ChainProof() {
                 return (
                   <div key={i} className="flex h-full flex-col justify-end">
                     <div className="num mb-2 text-center text-xs text-lime">{b ? `+${units(100 * step, 4)}` : ""}</div>
-                    <motion.div initial={{ height: 0 }} whileInView={{ height: b ? `${(step / maxStep) * 76}%` : "6%" }} viewport={{ once: true }} transition={{ duration: 1.1, delay: 0.12 * i, ease: [0.16, 1, 0.3, 1] }} className="rounded-t-md bg-gradient-to-t from-lime/30 to-lime" />
+                    <motion.div style={{ height: b ? `${(step / maxStep) * 76}%` : "6%", originY: 1 }} whileInView={{ scaleY: [0.15, 1] }} viewport={{ once: true }} transition={{ duration: 1.1, delay: 0.12 * i, ease: [0.16, 1, 0.3, 1] }} className="rounded-t-md bg-gradient-to-t from-lime/30 to-lime" />
                     <div className="num mt-3 border-t border-line pt-2 text-center text-[11px] text-dim">{b ? dateUTC(b.at) : "…"}</div>
                   </div>
                 );

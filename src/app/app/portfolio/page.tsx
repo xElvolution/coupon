@@ -36,7 +36,7 @@ export default function Portfolio() {
       <PageHead kicker="Portfolio" title="Everything you hold," accent="split two ways." right={<button onClick={() => { if (confirm("Reset the paper ledger to its starting balances?")) L.reset(); }} className="btn btn-line h-9 px-4 text-xs">Reset ledger</button>} />
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["Ledger value", usd(data ? total : null), "at Pyth prices"],
+          ["Ledger value", usd(data ? total : null), "at live prices"],
           ["Cash", usd(L.state.cash), "paper USDC"],
           ["Coupons held, at bid", usd(data ? dVal : null), "d tokens"],
           ["Projected 12m income", usd(data ? proj : null), "from coupons you hold"],

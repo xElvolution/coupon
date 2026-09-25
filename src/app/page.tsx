@@ -15,7 +15,7 @@ import MagneticLink from "@/components/landing/MagneticLink";
 import { Rosette } from "@/components/Guilloche";
 import { Mark } from "@/components/Logo";
 import { useMarkets } from "@/components/useMarkets";
-import { usd, pct, ago } from "@/lib/format";
+import { usd, pct } from "@/lib/format";
 import Link from "next/link";
 
 gsap.registerPlugin(useGSAP);
@@ -44,13 +44,13 @@ export default function Home() {
       {/* HERO */}
       <section ref={hero} className="relative min-h-[100svh] pt-[92px]">
         <div className="graph pointer-events-none absolute inset-0" />
-        <Rosette size={1100} spin className="pointer-events-none absolute -right-[380px] -top-[300px] text-lime" opacity={0.05} rings={6} />
+        <Rosette size={1100} spin className="pointer-events-none absolute hidden md:block -right-[380px] -top-[300px] text-lime" opacity={0.05} rings={6} />
         <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
           <div className="h-meta flex items-center gap-3">
-            <span className="rounded-full border border-line-2 px-3 py-1"><span className="micro !text-[10px] text-dim">xStocks · Solana</span></span>
-            <span className="micro !text-[10px] text-faint">Dividend stripping for tokenized equities</span>
+            <span className="shrink-0 whitespace-nowrap rounded-full border border-line-2 px-3 py-1"><span className="micro !text-[10px] !tracking-[0.14em] text-dim">xStocks · Solana</span></span>
+            <span className="micro hidden !text-[10px] text-faint sm:inline">Dividend stripping for tokenized equities</span>
           </div>
-          <h1 className="display h1 mt-6 font-[340]">
+          <h1 className="display h1 mt-6 !font-[480]">
             <span className="h-line block overflow-hidden pb-[0.06em]"><span className="block">Sell next year&apos;s</span></span>
             <span className="h-line block overflow-hidden pb-[0.1em]"><span className="block italic text-lime">dividends today.</span></span>
           </h1>
@@ -65,8 +65,8 @@ export default function Home() {
                 <a href="#trade" className="btn btn-line h-[52px] px-6 text-[15px]">See how coupons pay</a>
               </div>
               <div className="h-meta mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-line pt-5">
-                <div><div className="num text-lg text-ink">{usd(spy?.xPrice)}</div><div className="micro mt-1 !text-[9px] text-faint">SPYx · Pyth {spy?.xPublish ? ago(spy.xPublish) : ""}</div></div>
-                <div><div className="num text-lg text-lime">{pct(spy?.trailingYield, 3)}</div><div className="micro mt-1 !text-[9px] text-faint">Yield · onchain</div></div>
+                <div><div className="num text-lg text-ink">{usd(spy?.xPrice)}</div><div className="micro mt-1 !text-[9px] text-faint">SPYx · live</div></div>
+                <div><div className="num text-lg text-lime">{pct(spy?.trailingYield, 3)}</div><div className="micro mt-1 !text-[9px] text-faint">Yield 12m</div></div>
                 <div><div className="num text-lg text-ink">{spy?.multiplier?.toFixed(5) ?? "…"}</div><div className="micro mt-1 !text-[9px] text-faint">Multiplier</div></div>
               </div>
             </div>
@@ -87,7 +87,7 @@ export default function Home() {
           {[
             ["Solana", "Settlement layer"],
             ["xStocks by Backed", "SPYx, AAPLx and more"],
-            ["Pyth", "Equity and xStock prices"],
+            ["Pyth + Jupiter", "Oracle and live prices"],
             ["Token-2022", "Scaled UI multiplier"],
             ["Devnet vault", "Paper ledger today"],
           ].map(([a, b]) => (
@@ -108,7 +108,7 @@ export default function Home() {
             <Rosette size={760} spin className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-lime" opacity={0.07} rings={6} />
             <div className="relative">
               <h2 className="display mx-auto max-w-4xl text-[clamp(2.6rem,6.5vw,5.6rem)] leading-[0.95]">Your next four dividends, <em className="text-lime">in hand today.</em></h2>
-              <p className="mx-auto mt-6 max-w-lg text-dim">Connect Phantom, split SPYx and price the coupon against real Pyth and chain data.</p>
+              <p className="mx-auto mt-6 max-w-lg text-dim">Connect Phantom, split SPYx and price the coupon against live prices and real chain data.</p>
               <div className="mx-auto mt-10 flex max-w-[24rem] flex-col justify-center gap-3 sm:max-w-none sm:flex-row">
                 <MagneticLink href="/app/split" className="btn btn-lime h-[52px] px-7 text-[15px]">Split my SPYx <span className="arr">→</span></MagneticLink>
                 <Link href="/app/markets" className="btn btn-line h-[52px] px-6 text-[15px]">Browse markets</Link>
@@ -142,7 +142,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <div className="micro mx-auto mt-14 max-w-6xl px-6 !text-[10px] text-faint">Built for Stocklana · Prices Pyth · Multipliers Solana mainnet · Vault paper ledger on devnet release</div>
+        <div className="micro mx-auto mt-14 max-w-6xl px-6 !text-[10px] text-faint">Built for Stocklana · Prices live on Solana, Pyth reference · Multipliers Solana mainnet · Vault paper ledger on devnet release</div>
         <div aria-hidden className="display pointer-events-none mt-6 select-none text-center text-[clamp(6rem,24vw,22rem)] leading-[0.8]" style={{ marginBottom: "-0.14em", background: "linear-gradient(180deg, rgba(200,245,96,.16), transparent 85%)", WebkitBackgroundClip: "text", color: "transparent" }}>COUPON</div>
       </footer>
     </main>

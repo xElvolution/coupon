@@ -76,7 +76,7 @@ function ReplayInner() {
               </span>{" "}
               {x} received <span className="text-lime"><RollingNumber value={extra != null ? units(extra, 8) : "0.00000000"} /></span> {x}.
             </p>
-            <p className="mt-4 text-lg text-dim">A d{x} holder would have received exactly that, worth <span className="num text-ink">{usd(extra != null && m?.xPrice ? extra * m.xPrice : null)}</span> at today&apos;s Pyth price.</p>
+            <p className="mt-4 text-lg text-dim">A d{x} holder would have received exactly that, worth <span className="num text-ink">{usd(extra != null && m?.xPrice ? extra * m.xPrice : null)}</span> at today&apos;s live price.</p>
             <div className="mt-8 grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line">
               <div className="bg-surface p-4"><div className="micro !text-[9px] text-dim">Previous</div><div className="num mt-2 text-sm text-ink sm:text-base">{b?.prev.toFixed(12) ?? "…"}</div></div>
               <div className="bg-surface p-4"><div className="micro !text-[9px] text-dim">New</div><div className="num mt-2 text-sm text-ink sm:text-base">{b?.next.toFixed(12) ?? "…"}</div></div>

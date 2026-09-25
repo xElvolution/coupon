@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useMarkets } from "@/components/useMarkets";
 import { useLedger, type Receipt } from "@/components/useLedger";
 import { AmountField, PageHead, PaperNote, ReceiptModal, Row, Seg, TickerChips, TokenDot } from "@/components/app/ui";
-import { units, usd, pct, dateUTC } from "@/lib/format";
+import { units, usd, pct, dateUTC, srcLabel } from "@/lib/format";
 import { SELL_DISCOUNT, BUY_DISCOUNT } from "@/lib/markets";
 
 function TradeInner() {
@@ -78,7 +78,7 @@ function TradeInner() {
             <div className="micro mt-7 !text-[9px] text-dim">How the price is built</div>
             <div className="mt-3 space-y-2">
               {[
-                ["Pyth " + x, usd(m?.xPrice), "live"],
+                [`${x} price`, usd(m?.xPrice), m ? srcLabel(m.priceSource) : ""],
                 ["× Trailing 12m multiplier growth", pct(m?.trailingYield, 4), `${m?.bumps.filter((b) => Date.now() - new Date(b.at).getTime() < 365 * 864e5).length ?? "…"} real bumps`],
                 ["= Fair value per coupon", usd(m?.fair, 4), ""],
                 [`Bid (fair × ${1 - SELL_DISCOUNT})`, usd(m?.bid, 4), "sellers"],

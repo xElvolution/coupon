@@ -13,8 +13,11 @@ export interface MarketSnapshot {
   hue: string;
   equity: number | null; // Pyth equity price
   equityPublish: number | null;
-  xPrice: number | null; // Pyth xStock price
+  xPrice: number | null; // price used for coupon math
   xPublish: number | null;
+  priceSource: "pyth" | "jupiter" | "pyth-onchain" | "none";
+  pythX: number | null; // Pyth xStock feed, as last published
+  pythXPublish: number | null;
   multiplier: number | null; // effective now, from chain
   rawMultiplier: number | null;
   newMultiplier: number | null;
