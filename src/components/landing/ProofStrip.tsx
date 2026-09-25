@@ -31,9 +31,12 @@ export default function ProofStrip() {
   );
   return (
     <div className="relative overflow-hidden border-y border-line bg-bg-2 py-3.5">
-      <div className="absolute left-0 top-0 z-10 flex h-full items-center gap-2 bg-gradient-to-r from-bg-2 via-bg-2 to-transparent pl-5 pr-10">
-        <span className="live-dot h-1.5 w-1.5 rounded-full bg-lime" />
-        <span className="micro !text-[10px] text-lime">Live</span>
+      <div className="absolute left-0 top-0 z-10 flex h-full items-center">
+        <div className="flex h-full items-center gap-2 border-r border-line bg-bg-2 pl-5 pr-4">
+          <span className="live-dot h-1.5 w-1.5 rounded-full bg-lime" />
+          <span className="micro !text-[10px] text-lime">Live</span>
+        </div>
+        <div className="h-full w-10 bg-gradient-to-r from-bg-2 to-transparent" />
       </div>
       <div className="marquee flex w-max pl-24">{row("a")}{row("b")}</div>
     </div>

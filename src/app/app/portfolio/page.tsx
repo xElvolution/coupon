@@ -85,7 +85,11 @@ export default function Portfolio() {
               </div>
               <div className="flex items-center gap-4">
                 {r.cash != null && <span className={`num ${r.cash > 0 ? "text-lime" : "text-dim"}`}>{r.cash > 0 ? "+" : ""}{usd(r.cash)}</span>}
-                <span className="num hidden text-xs text-faint sm:inline">{short(r.id, 5, 4)}</span>
+                {r.devnetSig ? (
+                  <a href={`https://explorer.solana.com/tx/${r.devnetSig}?cluster=devnet`} target="_blank" rel="noreferrer" className="num hidden text-xs text-lime hover:underline sm:inline">devnet {short(r.devnetSig, 4, 4)} ↗</a>
+                ) : (
+                  <span className="num hidden text-xs text-faint sm:inline">{short(r.id, 5, 4)}</span>
+                )}
               </div>
             </div>
           ))}

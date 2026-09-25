@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useWallet } from "@solana/wallet-adapter-react";
 
 export type Action = "split" | "sell" | "buy" | "redeem";
-export interface Receipt { id: string; at: number; action: Action; x: string; amount: number; price?: number; cash?: number; multiplier?: number | null }
+export interface Receipt { id: string; at: number; action: Action; x: string; amount: number; price?: number; cash?: number; multiplier?: number | null; devnetSig?: string }
 export interface Position { x: number; p: number; d: number }
 export interface LedgerState { cash: number; positions: Record<string, Position>; receipts: Receipt[] }
 
@@ -21,6 +21,7 @@ interface Ctx {
   sell: (x: string, amt: number, price: number) => Receipt;
   buy: (x: string, amt: number, price: number) => Receipt;
   reset: () => void;
+  attachSig: (id: string, sig: string) => void;
 }
 const LedgerCtx = createContext<Ctx | null>(null);
 
@@ -61,6 +62,7 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
       sell: (x, amt, price) => { const r = mk({ action: "sell", x, amount: amt, price, cash: amt * price }); commit((s) => upd(s, x, (p) => ({ ...p, d: p.d - amt }), amt * price, r)); return r; },
       buy: (x, amt, price) => { const r = mk({ action: "buy", x, amount: amt, price, cash: -amt * price }); commit((s) => upd(s, x, (p) => ({ ...p, d: p.d + amt }), -amt * price, r)); return r; },
       reset: () => commit(() => START),
+      attachSig: (id, sig) => commit((s) => ({ ...s, receipts: s.receipts.map((r) => (r.id === id ? { ...r, devnetSig: sig } : r)) })),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state, owner, pos, commit],

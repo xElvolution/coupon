@@ -2,7 +2,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import type { MarketSnapshot } from "@/lib/types";
 import type { Receipt } from "../useLedger";
-import { units, usd } from "@/lib/format";
+import { units, usd, short } from "@/lib/format";
+import type { DevnetState } from "./useReceiptFlow";
 
 export function PageHead({ kicker, title, accent, sub, right }: { kicker: string; title: string; accent?: string; sub?: string; right?: React.ReactNode }) {
   return (
@@ -80,14 +81,14 @@ export function PaperNote() {
   return (
     <div className="flex gap-3 rounded-xl border border-share/25 bg-share/[0.06] px-4 py-3 text-[13px] text-share">
       <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-share" />
-      <span>Paper ledger. Prices and multipliers are live, but vault balances are recorded in this browser only. No tokens move and nothing is sent onchain.</span>
+      <span>Paper ledger. Prices and multipliers are real, vault balances live in this browser and no tokens move. With a wallet connected, each receipt is also signed onto Solana devnet as a memo transaction.</span>
     </div>
   );
 }
 
 const TITLES: Record<Receipt["action"], string> = { split: "Split recorded", redeem: "Redeem recorded", sell: "Coupon sold", buy: "Coupon bought" };
 
-export function ReceiptModal({ r, onClose }: { r: Receipt | null; onClose: () => void }) {
+export function ReceiptModal({ r, onClose, devnet, onRetry }: { r: Receipt | null; onClose: () => void; devnet?: DevnetState; onRetry?: () => void }) {
   return (
     <AnimatePresence>
       {r && (
@@ -111,8 +112,15 @@ export function ReceiptModal({ r, onClose }: { r: Receipt | null; onClose: () =>
             </div>
             <div className="perf-h h-2 bg-surface" />
             <div className="rounded-b-[20px] border border-line-2 border-t-0 bg-surface px-7 pb-6 pt-4">
-              <div className="micro !text-[9px] text-faint">Receipt id · paper ledger, not a Solana signature</div>
+              <div className="micro !text-[9px] text-faint">Receipt id · paper ledger</div>
               <div className="num mt-1 break-all text-xs text-dim">{r.id}</div>
+              <div className="mt-4 rounded-xl border border-line bg-bg/60 px-4 py-3 text-xs">
+                <div className="micro !text-[9px] text-faint">Devnet record · memo transaction</div>
+                {(!devnet || devnet.state === "idle" || devnet.state === "nowallet") && <div className="mt-1.5 text-dim">Connect a wallet to also sign this receipt onto Solana devnet.</div>}
+                {devnet?.state === "pending" && <div className="mt-1.5 flex items-center gap-2 text-dim"><span className="live-dot h-1.5 w-1.5 rounded-full bg-lime" />Waiting for your wallet signature…</div>}
+                {devnet?.state === "ok" && devnet.sig && <a href={`https://explorer.solana.com/tx/${devnet.sig}?cluster=devnet`} target="_blank" rel="noreferrer" className="num mt-1.5 flex items-center justify-between text-lime hover:underline"><span>{short(devnet.sig, 10, 10)}</span><span>↗</span></a>}
+                {devnet?.state === "err" && <div className="mt-1.5 flex items-center justify-between gap-3 text-dim"><span>{devnet.error}</span>{onRetry && <button onClick={onRetry} className="shrink-0 text-lime hover:underline">Retry</button>}</div>}
+              </div>
               <button onClick={onClose} className="btn btn-lime mt-5 h-11 w-full">Done</button>
             </div>
           </motion.div>

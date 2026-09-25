@@ -57,7 +57,7 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
 .btn-lime:hover .arr { transform: translateX(4px); }
 .btn-line { border: 1px solid var(--color-line-2); color: var(--color-ink); background: rgba(236, 232, 220, 0.02); }
 .btn-line:hover { border-color: rgba(200, 245, 96, 0.5); color: var(--color-lime); transform: translateY(-1px); }
-.btn:disabled { opacity: 0.4; pointer-events: none; }
+.btn:disabled { opacity: 1; pointer-events: none; background: var(--color-surface-2); color: var(--color-faint); box-shadow: none; border-color: var(--color-line); }
 
 .perf-v { background-image: radial-gradient(circle, var(--color-bg) 3px, transparent 3.5px); background-size: 8px 13px; background-repeat: repeat-y; background-position: center; }
 .perf-h { background-image: radial-gradient(circle, var(--color-bg) 3px, transparent 3.5px); background-size: 13px 8px; background-repeat: repeat-x; background-position: center; }

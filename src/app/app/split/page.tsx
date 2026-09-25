@@ -3,7 +3,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useMarkets } from "@/components/useMarkets";
-import { useLedger, type Receipt } from "@/components/useLedger";
+import { useLedger } from "@/components/useLedger";
+import { useReceiptFlow } from "@/components/app/useReceiptFlow";
 import { AmountField, PageHead, PaperNote, ReceiptModal, Row, Seg, TickerChips } from "@/components/app/ui";
 import { Rosette } from "@/components/Guilloche";
 import { units, usd, pct } from "@/lib/format";
@@ -15,7 +16,7 @@ function SplitInner() {
   const [x, setX] = useState(sp.get("x") ?? "SPYx");
   const [mode, setMode] = useState<"split" | "redeem">("split");
   const [amt, setAmt] = useState(sp.get("amt") ?? "");
-  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const flow = useReceiptFlow();
   const m = get(x);
   const pos = L.pos(x);
   const paying = (data?.markets ?? []).filter((k) => k.trailingYield > 0);
@@ -28,7 +29,7 @@ function SplitInner() {
 
   const go = () => {
     const r = mode === "split" ? L.split(x, n, mult) : L.redeem(x, n, mult);
-    setReceipt(r);
+    flow.open(r);
     setAmt("");
   };
 
@@ -92,7 +93,7 @@ function SplitInner() {
           </div>
         </div>
       </div>
-      <ReceiptModal r={receipt} onClose={() => setReceipt(null)} />
+      <ReceiptModal r={flow.receipt} devnet={flow.devnet} onRetry={flow.retry} onClose={flow.close} />
     </div>
   );
 }

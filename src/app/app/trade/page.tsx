@@ -4,7 +4,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMarkets } from "@/components/useMarkets";
-import { useLedger, type Receipt } from "@/components/useLedger";
+import { useLedger } from "@/components/useLedger";
+import { useReceiptFlow } from "@/components/app/useReceiptFlow";
 import { AmountField, PageHead, PaperNote, ReceiptModal, Row, Seg, TickerChips, TokenDot } from "@/components/app/ui";
 import { units, usd, pct, dateUTC, srcLabel } from "@/lib/format";
 import { SELL_DISCOUNT, BUY_DISCOUNT } from "@/lib/markets";
@@ -16,7 +17,7 @@ function TradeInner() {
   const [x, setX] = useState(sp.get("x") ?? "SPYx");
   const [side, setSide] = useState<"sell" | "buy">(sp.get("side") === "buy" ? "buy" : "sell");
   const [amt, setAmt] = useState("");
-  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const flow = useReceiptFlow();
   const m = get(x);
   const pos = L.pos(x);
   const paying = (data?.markets ?? []).filter((k) => k.trailingYield > 0);
@@ -28,7 +29,7 @@ function TradeInner() {
 
   const go = () => {
     if (!price) return;
-    setReceipt(side === "sell" ? L.sell(x, n, price) : L.buy(x, n, price));
+    flow.open(side === "sell" ? L.sell(x, n, price) : L.buy(x, n, price));
     setAmt("");
   };
 
@@ -107,7 +108,7 @@ function TradeInner() {
           </div>
         </div>
       </div>
-      <ReceiptModal r={receipt} onClose={() => setReceipt(null)} />
+      <ReceiptModal r={flow.receipt} devnet={flow.devnet} onRetry={flow.retry} onClose={flow.close} />
     </div>
   );
 }
