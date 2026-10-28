@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
@@ -18,7 +18,6 @@ import {
   type TimeframeKey,
   type UserPredictionPosition,
 } from "@/lib/predictions-data";
-import { TOKEN_LOGOS } from "@/lib/token-logos";
 import { usd, units, short } from "@/lib/format";
 import { explorerTx } from "@/lib/vault/deployment";
 
@@ -61,7 +60,6 @@ function PredictionDetailInner() {
   const [positions, setPositions] = useState<UserPredictionPosition[]>([]);
   const [customTrades, setCustomTrades] = useState<PredictionTrade[]>([]);
 
-  // Popup Order Sheet + Review Confirmation Step
   const [orderSheetOpen, setOrderSheetOpen] = useState<boolean>(false);
   const [confirmStep, setConfirmStep] = useState<boolean>(false);
   const [signingTx, setSigningTx] = useState<boolean>(false);
@@ -201,7 +199,6 @@ function PredictionDetailInner() {
 
   const renderOrderTicketContent = (inModal: boolean) => (
     <div className="space-y-3.5">
-      {/* Header inside Popup */}
       {inModal && (
         <div className="flex items-start justify-between gap-3 border-b border-line pb-3">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -230,7 +227,6 @@ function PredictionDetailInner() {
         </div>
       )}
 
-      {/* Buy / Sell + Market / Limit Row */}
       <div className="flex items-center justify-between gap-2">
         <Seg
           options={[
@@ -262,7 +258,6 @@ function PredictionDetailInner() {
         </div>
       </div>
 
-      {/* Side-by-Side Outcome Selector (Buy YES / Buy NO) */}
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
@@ -309,7 +304,6 @@ function PredictionDetailInner() {
         </button>
       </div>
 
-      {/* Available Balance Strip */}
       <div className="flex items-center justify-between text-xs text-dim">
         <span>Available Balance</span>
         <span className="num font-medium text-ink">
@@ -317,7 +311,6 @@ function PredictionDetailInner() {
         </span>
       </div>
 
-      {/* Bybit-Style Integrated Limit Price Input Box (Price [ 68¢  — | + ]) */}
       {orderType === "Limit" && (
         <div>
           <div className="mb-1 flex items-center justify-between text-[11px] text-dim">
@@ -373,7 +366,6 @@ function PredictionDetailInner() {
         </div>
       )}
 
-      {/* Bybit-Style Integrated Amount Box + 5-Node Percentage Slider */}
       <div>
         <div className="flex h-11 items-center justify-between rounded-xl border border-[#262B38] bg-[#141720] px-3 focus-within:border-lime/60">
           <span className="shrink-0 text-xs text-dim">Amount</span>
@@ -393,7 +385,6 @@ function PredictionDetailInner() {
           </span>
         </div>
 
-        {/* 5-Node Percentage Slider (0% — 25% — 50% — 75% — 100%) */}
         <div className="mt-2.5 px-1">
           <div className="relative flex items-center justify-between">
             <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-[#262B38]" />
@@ -424,7 +415,6 @@ function PredictionDetailInner() {
           </div>
         </div>
 
-        {/* Quick USD Presets */}
         <div className="mt-2 grid grid-cols-4 gap-1.5">
           {[10, 25, 100, 500].map((preset) => (
             <button
@@ -446,7 +436,6 @@ function PredictionDetailInner() {
         </div>
       </div>
 
-      {/* Confirmation Summary Box */}
       <div
         className={`rounded-xl border p-3 transition-colors ${
           confirmStep
@@ -492,7 +481,6 @@ function PredictionDetailInner() {
         </div>
       </div>
 
-      {/* Single Primary Execution CTA (Real Wallet Gate!) */}
       <button
         type="button"
         onClick={handlePrimaryOrderAction}
@@ -517,10 +505,10 @@ function PredictionDetailInner() {
   );
 
   return (
-    <div className="space-y-5 pb-36 sm:space-y-6 lg:pb-16">
-      {/* Compact Bybit-Style Top Instrument Bar */}
-      <div className="flex items-center justify-between gap-2 rounded-2xl border border-line-2 bg-surface px-3 py-2 sm:px-4 sm:py-2.5">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+    <div className="space-y-4 pb-32 sm:space-y-5 lg:pb-16">
+      {/* CLEAN SINGLE-INSTRUMENT TOP BAR (No other stock pills colliding with Live Oracle!) */}
+      <div className="flex items-center justify-between gap-2 rounded-2xl border border-line-2 bg-surface px-3 py-2.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <Link
             href="/app/predictions"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line-2 bg-bg text-xs text-dim transition-colors hover:border-lime/40 hover:text-lime"
@@ -530,12 +518,9 @@ function PredictionDetailInner() {
           </Link>
           <TokenDot m={{ x: market.symbol, under: market.symbol, hue: theme.primary }} size={30} badge="d" />
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <span className="num text-sm font-bold text-ink sm:text-base">{market.symbol}</span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#16C784]/30 bg-[#16C784]/10 px-2 py-0.5 text-[10px] font-medium text-[#16C784]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#16C784]" />
-                Live Oracle
-              </span>
+              <span className="truncate text-xs text-dim hidden sm:inline">· {market.company}</span>
             </div>
             <div className="truncate text-[11px] text-dim">
               {market.category} · Resolves {market.endDate}
@@ -543,81 +528,49 @@ function PredictionDetailInner() {
           </div>
         </div>
 
-        {/* Right: Quick Market Switcher Pills */}
-        <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
-          {PREDICTION_MARKETS.slice(0, 4).map((m) => {
-            const isCurrent = m.id === market.id;
-            return (
-              <Link
-                key={m.id}
-                href={`/app/predictions/${m.id}`}
-                className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-all ${
-                  isCurrent
-                    ? "border-lime bg-lime font-semibold text-bg"
-                    : "border-line-2 bg-bg text-dim hover:text-ink"
-                }`}
-              >
-                <span className="num">{m.symbol}</span>
-                <span className={`num text-[10px] ${isCurrent ? "text-bg/80" : "text-lime"}`}>{m.yesCents}¢</span>
-              </Link>
-            );
-          })}
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#16C784]/30 bg-[#16C784]/10 px-2.5 py-1 text-[11px] font-semibold text-[#16C784]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#16C784]" />
+            Pyth Oracle
+          </span>
         </div>
       </div>
 
-      {/* Main Two-Column Layout (Desktop has right dock; Mobile has NO inline bottom order form!) */}
+      {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[1.44fr_0.86fr] lg:items-start">
         {/* LEFT COLUMN: Chart + Interactive Orderbook / Limit Rows + Rules */}
         <div className="space-y-4">
-          {/* Unified Header + Dual-Line Chart Card */}
-          <div className="card relative overflow-hidden border-line-2 p-5 sm:p-6">
+          <div className="card relative overflow-hidden border-line-2 p-4 sm:p-6">
             <Rosette size={320} spin className="pointer-events-none absolute -right-28 -top-28 text-lime" opacity={0.05} />
 
-            <h1 className="display text-2xl leading-[1.12] text-ink sm:text-3xl">
+            <h1 className="display text-xl leading-[1.15] text-ink sm:text-3xl">
               {market.title}
             </h1>
             <p className="mt-1 text-xs leading-relaxed text-dim sm:text-sm">{market.subtitle}</p>
 
-            {/* Dual Outcome Odds Callout Bar (Clicking YES or NO opens popup on mobile!) */}
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => openOrderPopup("YES", "Market")}
-                className="flex items-center justify-between rounded-xl border border-[#16C784]/35 bg-[#16C784]/10 px-3 py-2 text-left transition-colors hover:bg-[#16C784]/20"
-              >
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[#16C784]">
-                    Yes · {market.targetMetricValue}
-                  </div>
-                  <div className="num mt-0.5 text-lg font-bold text-[#16C784] sm:text-xl">
-                    {market.yesCents}¢ <span className="text-xs font-normal opacity-80">({market.change24h})</span>
-                  </div>
-                </div>
-                <span className="rounded-lg bg-[#16C784] px-2 py-1 text-[10px] font-bold text-[#0A0B0D]">
-                  Buy YES
+            {/* Polymarket / Kalshi Probability Strip (Replaces duplicate Buy YES / Buy NO cards!) */}
+            <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2 border-y border-line/80 py-2.5">
+              <div className="flex items-baseline gap-2">
+                <span className="num text-2xl font-extrabold text-[#16C784] sm:text-3xl">
+                  {market.yesCents}% chance
                 </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => openOrderPopup("NO", "Market")}
-                className="flex items-center justify-between rounded-xl border border-[#EA3943]/35 bg-[#EA3943]/10 px-3 py-2 text-left transition-colors hover:bg-[#EA3943]/20"
-              >
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[#EA3943]">
-                    No · Below Target
-                  </div>
-                  <div className="num mt-0.5 text-lg font-bold text-[#EA3943] sm:text-xl">
-                    {market.noCents}¢
-                  </div>
-                </div>
-                <span className="rounded-lg bg-[#EA3943] px-2 py-1 text-[10px] font-bold text-white">
-                  Buy NO
+                <span className="num rounded-md bg-[#16C784]/15 px-1.5 py-0.5 text-xs font-semibold text-[#16C784]">
+                  {market.change24h} 24h
                 </span>
-              </button>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#16C784]" />
+                  <span className="num font-semibold text-ink">Yes {market.yesCents}¢</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#EA3943]" />
+                  <span className="num font-semibold text-ink">No {market.noCents}¢</span>
+                </span>
+              </div>
             </div>
 
-            {/* Interactive Probability Chart */}
+            {/* Interactive Touch & Mouse Scrubbable Probability Chart */}
             <div className="mt-3">
               <InteractiveProbabilityChart series={market.series[tf]} />
             </div>
@@ -647,12 +600,12 @@ function PredictionDetailInner() {
             </div>
           </div>
 
-          {/* Interactive Order Book / Limit Chart / Trades / Rules Tabs */}
+          {/* Interactive Order Book / Trades / Rules / Tickets Tabs */}
           <div className="card overflow-hidden border-line-2">
             <div className="no-scrollbar flex items-center gap-1 overflow-x-auto border-b border-line bg-surface-2/50 px-3 py-2 sm:px-4">
               {(
                 [
-                  ["book", "Limit Order Book"],
+                  ["book", "Order Book"],
                   ["trades", `Trades (${allTrades.length})`],
                   ["rules", "Rules & Oracle"],
                   ["positions", `My Tickets (${marketPositions.length})`],
@@ -676,7 +629,7 @@ function PredictionDetailInner() {
                 <div>
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-lime/25 bg-lime/[0.06] px-3 py-2 text-[11px] sm:text-xs">
                     <span className="font-medium text-lime">
-                      Tap any Ask or Bid price row below to pop up a Limit Order at that exact price
+                      Tap any Ask or Bid price row below to open a Limit Order at that exact price
                     </span>
                     <span className="num text-ink">
                       Mid: <strong className="text-[#16C784]">YES {market.yesCents}¢</strong> ·{" "}
@@ -689,7 +642,7 @@ function PredictionDetailInner() {
                     <div className="rounded-xl border border-line bg-bg/50 p-3">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="num text-xs font-semibold text-[#16C784]">YES Limit Book</span>
-                        <span className="micro !text-[8px] text-dim">Tap row → Limit Popup</span>
+                        <span className="micro !text-[8px] text-dim">Tap row → Limit</span>
                       </div>
                       <div className="grid grid-cols-3 pb-1.5 text-[9px] uppercase tracking-wider text-faint">
                         <span>Price (¢)</span>
@@ -749,7 +702,7 @@ function PredictionDetailInner() {
                     <div className="rounded-xl border border-line bg-bg/50 p-3">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="num text-xs font-semibold text-[#EA3943]">NO Limit Book</span>
-                        <span className="micro !text-[8px] text-dim">Tap row → Limit Popup</span>
+                        <span className="micro !text-[8px] text-dim">Tap row → Limit</span>
                       </div>
                       <div className="grid grid-cols-3 pb-1.5 text-[9px] uppercase tracking-wider text-faint">
                         <span>Price (¢)</span>
@@ -853,7 +806,6 @@ function PredictionDetailInner() {
                     <div className="micro !text-[9px] text-lime">Resolution Criteria</div>
                     <p className="mt-1.5 text-xs leading-relaxed text-ink sm:text-sm">{market.rulesSummary}</p>
                   </div>
-                  {/* Bybit Screenshot 2 Key-Value Information Table */}
                   <div className="divide-y divide-line rounded-xl border border-line bg-bg/40 px-3.5">
                     <Row k="Underlying xStock" v={`${market.company} (${market.symbol})`} />
                     <Row k={market.currentMetricLabel} v={market.currentMetricValue} />
@@ -882,7 +834,6 @@ function PredictionDetailInner() {
                           key={p.id}
                           className="rounded-xl border border-line-2 bg-surface p-3 sm:p-3.5"
                         >
-                          {/* Top Row: Header + Compact Cash Out Button */}
                           <div className="flex items-start justify-between gap-2.5">
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-1.5">
@@ -911,7 +862,6 @@ function PredictionDetailInner() {
                             </button>
                           </div>
 
-                          {/* Bottom Row: 4-Column Tabular Metrics Strip */}
                           <div className="mt-2.5 grid grid-cols-4 gap-2 rounded-lg bg-bg/60 px-3 py-2">
                             <div>
                               <div className="micro !text-[8px] text-faint">Shares</div>
@@ -949,7 +899,7 @@ function PredictionDetailInner() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Desktop-Only Sticky Order Ticket (HIDDEN on mobile so mobile stays 100% popup-based!) */}
+        {/* RIGHT COLUMN: Desktop-Only Sticky Order Ticket */}
         <div className="hidden lg:sticky lg:top-20 lg:block">
           <div className="card overflow-hidden border-line-2 p-5">
             {renderOrderTicketContent(false)}
@@ -957,14 +907,14 @@ function PredictionDetailInner() {
         </div>
       </div>
 
-      {/* MOBILE FLOATING BYBIT-STYLE DUAL ACTION BAR (Buy YES | Buy NO + Limit button) */}
+      {/* MOBILE FLOATING DUAL ACTION BAR (Buy YES | Buy NO + Limit button) */}
       <Portal>
         <div className="fixed inset-x-0 bottom-[calc(max(12px,env(safe-area-inset-bottom))+64px)] z-30 px-3 lg:hidden">
           <div className="flex items-center gap-2 rounded-2xl border border-line-2 bg-[#11131A]/95 p-2 shadow-[0_-12px_36px_rgba(0,0,0,0.85)] backdrop-blur-md">
             <button
               type="button"
               onClick={() => openOrderPopup(side, "Limit")}
-              className="flex h-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line-2 bg-surface px-3 text-[10px] font-semibold text-dim transition-colors hover:border-lime/40 hover:text-ink"
+              className="flex h-10 shrink-0 flex-col items-center justify-center rounded-xl border border-line-2 bg-surface px-3 text-[10px] font-semibold text-dim transition-colors hover:border-lime/40 hover:text-ink"
             >
               <span className="num text-xs font-bold text-lime">Limit</span>
               <span>Book</span>
@@ -973,7 +923,7 @@ function PredictionDetailInner() {
             <button
               type="button"
               onClick={() => openOrderPopup("YES", "Market")}
-              className="flex h-11 flex-1 items-center justify-between rounded-xl bg-[#16C784] px-3.5 font-bold text-[#0A0B0D] shadow-[0_6px_20px_-6px_rgba(22,199,132,0.6)] transition-transform active:scale-[0.98]"
+              className="flex h-10 flex-1 items-center justify-between rounded-xl bg-[#16C784] px-3.5 font-bold text-[#0A0B0D] shadow-[0_6px_20px_-6px_rgba(22,199,132,0.6)] transition-transform active:scale-[0.98]"
             >
               <span className="text-xs uppercase tracking-wide">Buy YES</span>
               <span className="num text-sm font-extrabold">{market.yesCents}¢</span>
@@ -982,7 +932,7 @@ function PredictionDetailInner() {
             <button
               type="button"
               onClick={() => openOrderPopup("NO", "Market")}
-              className="flex h-11 flex-1 items-center justify-between rounded-xl bg-[#EA3943] px-3.5 font-bold text-white shadow-[0_6px_20px_-6px_rgba(234,57,67,0.6)] transition-transform active:scale-[0.98]"
+              className="flex h-10 flex-1 items-center justify-between rounded-xl bg-[#EA3943] px-3.5 font-bold text-white shadow-[0_6px_20px_-6px_rgba(234,57,67,0.6)] transition-transform active:scale-[0.98]"
             >
               <span className="text-xs uppercase tracking-wide">Buy NO</span>
               <span className="num text-sm font-extrabold">{market.noCents}¢</span>
@@ -1096,6 +1046,8 @@ function InteractiveProbabilityChart({
   series: { t: string; yes: number; no: number; vol: number }[];
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
   const w = 760;
   const h = 230;
   const padL = 12;
@@ -1119,10 +1071,19 @@ function InteractiveProbabilityChart({
   const maxVol = Math.max(...series.map((s) => s.vol), 1);
   const active = hoverIdx != null ? coords[hoverIdx] : coords[coords.length - 1];
 
+  const handleScrub = (clientX: number) => {
+    if (!svgRef.current || coords.length === 0) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const relX = ((clientX - rect.left) / Math.max(1, rect.width)) * w;
+    const idx = Math.round(((relX - padL) / chartW) * (coords.length - 1));
+    const clamped = Math.max(0, Math.min(coords.length - 1, idx));
+    setHoverIdx(clamped);
+  };
+
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px] sm:text-xs">
-        <span className="num text-dim">{active.pt.t}</span>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-bg/60 px-2.5 py-1.5 text-[11px] sm:text-xs">
+        <span className="num font-medium text-ink">{active.pt.t}</span>
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-[#16C784]" />
@@ -1137,8 +1098,19 @@ function InteractiveProbabilityChart({
       </div>
 
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${w} ${h}`}
-        className="h-44 w-full select-none overflow-visible sm:h-60"
+        className="h-44 w-full touch-pan-y select-none overflow-visible sm:h-60"
+        onPointerDown={(e) => handleScrub(e.clientX)}
+        onPointerMove={(e) => {
+          if (e.pointerType === "mouse" || e.buttons > 0) handleScrub(e.clientX);
+        }}
+        onTouchStart={(e) => {
+          if (e.touches[0]) handleScrub(e.touches[0].clientX);
+        }}
+        onTouchMove={(e) => {
+          if (e.touches[0]) handleScrub(e.touches[0].clientX);
+        }}
         onMouseLeave={() => setHoverIdx(null)}
       >
         <defs>
@@ -1206,11 +1178,11 @@ function InteractiveProbabilityChart({
               x2={active.x}
               y1={padT}
               y2={padT + chartH}
-              stroke="rgba(236,232,220,0.28)"
+              stroke="rgba(236,232,220,0.35)"
               strokeDasharray="3 3"
             />
-            <circle cx={active.x} cy={active.yYes} r="5" fill="#16C784" stroke="#0A0B0D" strokeWidth="2" />
-            <circle cx={active.x} cy={active.yNo} r="4" fill="#EA3943" stroke="#0A0B0D" strokeWidth="2" />
+            <circle cx={active.x} cy={active.yYes} r="5.5" fill="#16C784" stroke="#0A0B0D" strokeWidth="2" />
+            <circle cx={active.x} cy={active.yNo} r="4.5" fill="#EA3943" stroke="#0A0B0D" strokeWidth="2" />
           </>
         )}
 
@@ -1229,19 +1201,6 @@ function InteractiveProbabilityChart({
               {c.pt.t}
             </text>
           ))}
-
-        {coords.map((c, i) => (
-          <rect
-            key={`hit-${i}`}
-            x={c.x - chartW / coords.length / 2}
-            y={padT}
-            width={chartW / coords.length}
-            height={chartH}
-            fill="transparent"
-            className="cursor-crosshair"
-            onMouseEnter={() => setHoverIdx(i)}
-          />
-        ))}
       </svg>
     </div>
   );

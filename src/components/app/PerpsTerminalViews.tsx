@@ -1,19 +1,23 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Row } from "@/components/app/ui";
 import { TOKEN_LOGOS } from "@/lib/token-logos";
-import { usd, units, short } from "@/lib/format";
+import { units, short } from "@/lib/format";
 import type { PerpCandle, PerpMarket } from "@/lib/perps-data";
 
 export function BybitCandlestickChart({
   candles,
   symbol,
+  showMa = true,
 }: {
   candles: PerpCandle[];
   symbol: string;
+  showMa?: boolean;
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
   const w = 760;
   const h = 300;
   const padL = 10;
@@ -48,20 +52,49 @@ export function BybitCandlestickChart({
   const candleRange = active ? active.high - active.low : 0;
   const candleRangePct = active && active.low > 0 ? (candleRange / active.low) * 100 : 0;
 
+  const handleScrub = (clientX: number) => {
+    if (!svgRef.current || candles.length === 0) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const relX = ((clientX - rect.left) / Math.max(1, rect.width)) * w;
+    const idx = Math.floor((relX - padL) / xStep);
+    const clamped = Math.max(0, Math.min(candles.length - 1, idx));
+    setHoverIdx(clamped);
+  };
+
   return (
     <div className="relative select-none">
-      {/* MA7 / MA14 / MA28 Readout Bar */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-line/60 px-3 py-1.5 text-[10px] font-mono">
-        <span className="text-[#F5A623]">MA7: {active?.ma7.toFixed(2)}</span>
-        <span className="text-[#38BDF8]">MA14: {active?.ma14.toFixed(2)}</span>
-        <span className="text-[#C084FC]">MA28: {active?.ma28.toFixed(2)}</span>
-        <span className="ml-auto text-faint">{symbol} · Pyth Oracle</span>
+      {/* Compact OHLC + MA7 / MA14 / MA28 Readout Bar */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line/60 bg-bg/30 px-3 py-1.5 text-[10px] font-mono">
+        {active && (
+          <>
+            <span className="text-dim">
+              O <strong className="text-ink">{active.open.toFixed(2)}</strong>
+            </span>
+            <span className="text-dim">
+              H <strong className="text-[#16C784]">{active.high.toFixed(2)}</strong>
+            </span>
+            <span className="text-dim">
+              L <strong className="text-[#EA3943]">{active.low.toFixed(2)}</strong>
+            </span>
+            <span className="text-dim">
+              C <strong className="text-ink">{active.close.toFixed(2)}</strong>
+            </span>
+          </>
+        )}
+        {showMa && (
+          <>
+            <span className="text-[#F5A623]">MA7:{active?.ma7.toFixed(2)}</span>
+            <span className="text-[#38BDF8]">MA14:{active?.ma14.toFixed(2)}</span>
+            <span className="text-[#C084FC]">MA28:{active?.ma28.toFixed(2)}</span>
+          </>
+        )}
+        <span className="ml-auto text-faint hidden sm:inline">{symbol} · Pyth 400ms</span>
       </div>
 
       <div className="relative">
-        {/* Floating OHLCV Tooltip Card on Scrub/Tap (Bybit Screenshot 1 style) */}
+        {/* Floating OHLCV Tooltip Card on Scrub/Tap */}
         {hoverIdx !== null && active && (
-          <div className="pointer-events-none absolute left-2.5 top-2.5 z-20 w-44 rounded-lg border border-white/15 bg-[#11131A]/92 p-2 text-[10px] font-mono shadow-xl backdrop-blur-md">
+          <div className="pointer-events-none absolute left-2.5 top-2.5 z-20 w-44 rounded-lg border border-white/15 bg-[#11131A]/95 p-2 text-[10px] font-mono shadow-xl backdrop-blur-md">
             <div className="flex justify-between text-dim">
               <span>Time</span>
               <span className="text-ink">{active.t}</span>
@@ -104,8 +137,19 @@ export function BybitCandlestickChart({
         )}
 
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${w} ${h}`}
-          className="h-[230px] w-full overflow-visible sm:h-[290px]"
+          className="h-[225px] w-full touch-pan-y overflow-visible sm:h-[290px]"
+          onPointerDown={(e) => handleScrub(e.clientX)}
+          onPointerMove={(e) => {
+            if (e.pointerType === "mouse" || e.buttons > 0) handleScrub(e.clientX);
+          }}
+          onTouchStart={(e) => {
+            if (e.touches[0]) handleScrub(e.touches[0].clientX);
+          }}
+          onTouchMove={(e) => {
+            if (e.touches[0]) handleScrub(e.touches[0].clientX);
+          }}
           onMouseLeave={() => setHoverIdx(null)}
         >
           {[0, 0.25, 0.5, 0.75, 1].map((g) => {
@@ -164,9 +208,13 @@ export function BybitCandlestickChart({
           })}
 
           {/* Smooth Moving Average Lines */}
-          <path d={maPath("ma7")} fill="none" stroke="#F5A623" strokeWidth="1.4" />
-          <path d={maPath("ma14")} fill="none" stroke="#38BDF8" strokeWidth="1.4" />
-          <path d={maPath("ma28")} fill="none" stroke="#C084FC" strokeWidth="1.4" />
+          {showMa && (
+            <>
+              <path d={maPath("ma7")} fill="none" stroke="#F5A623" strokeWidth="1.4" />
+              <path d={maPath("ma14")} fill="none" stroke="#38BDF8" strokeWidth="1.4" />
+              <path d={maPath("ma28")} fill="none" stroke="#C084FC" strokeWidth="1.4" />
+            </>
+          )}
 
           {/* High / Low Callout Pins */}
           {candles[highestIdx] && (
@@ -200,7 +248,7 @@ export function BybitCandlestickChart({
                 x2={padL + hoverIdx * xStep + xStep / 2}
                 y1={padT}
                 y2={h - 16}
-                stroke="rgba(255,255,255,0.32)"
+                stroke="rgba(255,255,255,0.35)"
                 strokeDasharray="3 3"
               />
               <line
@@ -208,7 +256,7 @@ export function BybitCandlestickChart({
                 x2={w - padR}
                 y1={yOf(candles[hoverIdx].close)}
                 y2={yOf(candles[hoverIdx].close)}
-                stroke="rgba(255,255,255,0.25)"
+                stroke="rgba(255,255,255,0.28)"
                 strokeDasharray="3 3"
               />
             </>
@@ -231,21 +279,6 @@ export function BybitCandlestickChart({
                 {c.t}
               </text>
             ))}
-
-          {/* Interactive Hit Columns */}
-          {candles.map((_, i) => (
-            <rect
-              key={`hit-${i}`}
-              x={padL + i * xStep}
-              y={padT}
-              width={xStep}
-              height={h - padT}
-              fill="transparent"
-              className="cursor-crosshair"
-              onMouseEnter={() => setHoverIdx(i)}
-              onClick={() => setHoverIdx(hoverIdx === i ? null : i)}
-            />
-          ))}
         </svg>
       </div>
     </div>
@@ -257,7 +290,6 @@ export function BybitCompanyTab({ market }: { market: PerpMarket }) {
 
   return (
     <div className="space-y-4 p-3.5 sm:p-5">
-      {/* Sub-pills: Profile | Dividend | Stock Splits (Bybit Screenshot 2) */}
       <div className="flex items-center gap-2">
         {(
           [
@@ -357,7 +389,6 @@ export function BybitFinancialsTab({ market }: { market: PerpMarket }) {
 
   return (
     <div className="space-y-5 p-3.5 sm:p-5">
-      {/* Income Statement (Bybit Screenshot 3) */}
       <div className="rounded-xl border border-line bg-bg/40 p-3.5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink sm:text-base">Income Statement</h3>
@@ -413,7 +444,6 @@ export function BybitFinancialsTab({ market }: { market: PerpMarket }) {
         </div>
       </div>
 
-      {/* Balance Sheet (Bybit Screenshot 3) */}
       <div className="rounded-xl border border-line bg-bg/40 p-3.5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink sm:text-base">Balance Sheet</h3>
@@ -521,7 +551,7 @@ export function BybitMarketDrawer({
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Please enter preferred trading pair"
+              placeholder="Search stock perp (e.g. NVDA, SPY, TSLA)"
               className="w-full bg-transparent text-xs text-ink outline-none placeholder:text-dim"
             />
             {q && (
@@ -531,25 +561,34 @@ export function BybitMarketDrawer({
             )}
           </div>
 
-          <div className="mt-2.5 flex items-center gap-2 text-xs">
-            {(["All", "US Stocks", "ETFs"] as const).map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCat(c)}
-                className={`rounded-lg px-2.5 py-1 font-medium transition-colors ${
-                  cat === c ? "bg-surface-2 text-ink" : "text-dim hover:text-ink"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
+          <div className="mt-2.5 flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-1.5">
+              {(["All", "US Stocks", "ETFs"] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCat(c)}
+                  className={`rounded-lg px-2.5 py-1 font-medium transition-colors ${
+                    cat === c ? "bg-surface-2 text-ink" : "text-dim hover:text-ink"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-line-2 px-2 py-0.5 text-[11px] text-dim hover:text-ink"
+            >
+              Close
+            </button>
           </div>
 
           <div className="mt-3 grid grid-cols-[1.5fr_1fr_84px] text-[10px] text-dim">
-            <span>Trading Pairs / Market Cap</span>
-            <span className="text-right">Price</span>
-            <span className="text-right">24h%</span>
+            <span>Contract / Market Cap</span>
+            <span className="text-right">Mark Price</span>
+            <span className="text-right">24h Change</span>
           </div>
         </div>
 
@@ -575,16 +614,19 @@ export function BybitMarketDrawer({
                     <img src={TOKEN_LOGOS[m.symbol]} alt={m.symbol} className="h-7 w-7 shrink-0 rounded-full" />
                   )}
                   <div className="min-w-0">
-                    <div className="num text-xs font-bold text-ink sm:text-sm">{m.symbol.replace(/x$/, "")}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="num text-xs font-bold text-ink sm:text-sm">{m.symbol.replace(/x$/, "")}-PERP</span>
+                      <span className="rounded bg-lime/15 px-1 py-0.5 text-[9px] font-bold text-lime">{m.maxLeverage}x</span>
+                    </div>
                     <div className="truncate text-[10px] text-dim">
-                      {m.name} | {m.marketCap}
+                      {m.name} · {m.marketCap}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <div className="num text-xs font-semibold text-ink sm:text-sm">{m.markPrice.toFixed(2)}</div>
-                  <div className="num text-[10px] text-dim">{m.markPrice.toFixed(2)} USD</div>
+                  <div className="num text-xs font-semibold text-ink sm:text-sm">${m.markPrice.toFixed(2)}</div>
+                  <div className="num text-[10px] text-[#16C784]">+{m.dividendYieldApy.toFixed(2)}% Carry</div>
                 </div>
 
                 <div className="flex justify-end">

@@ -116,3 +116,42 @@ input[type="number"] { -moz-appearance: textfield; }
 [data-io] .hs-beat:not(.is-on) .hs-k { color: var(--color-faint, #6b6f76); }
 [data-io] .hs-beat.is-on { opacity: 1; transform: none; border-color: var(--color-line, #23262b); background: color-mix(in srgb, var(--color-surface, #121418) 60%, transparent); }
 @media (prefers-reduced-motion: reduce) { [data-io] .hs-beat { transition: none; } }
+
+/* Compact phone sizing for the web app (≤430px). Desktop and tablet are untouched.
+ * Modeled after Lexari mobile-compact.css so typography, buttons, cards, and inputs scale uniformly.
+ */
+@media (max-width: 430px) {
+  .text-\[15px\] { font-size: 13.5px; }
+  .text-\[16px\] { font-size: 14px; }
+  .text-\[18px\] { font-size: 15px; }
+  .text-\[20px\] { font-size: 16.5px; }
+  .text-\[22px\] { font-size: 18px; }
+  .text-\[24px\] { font-size: 19px; }
+  .text-\[28px\] { font-size: 20px; }
+  .text-\[32px\], .text-\[34px\], .text-\[36px\] { font-size: 22px; }
+  .text-3xl { font-size: 1.35rem; line-height: 1.15; }
+  .text-2xl { font-size: 1.15rem; line-height: 1.18; }
+  .text-xl { font-size: 1rem; line-height: 1.22; }
+  .text-lg { font-size: 0.95rem; line-height: 1.25; }
+
+  .card { border-radius: 16px; }
+  .btn { height: 2.5rem; padding: 0 1rem; font-size: 13px; gap: 0.4rem; }
+  .h-\[52px\] { height: 2.625rem; }
+  .h-14 { height: 2.875rem; }
+  .h-12 { height: 2.5rem; }
+  .h-11 { height: 2.25rem; }
+  .h-10 { height: 2.125rem; }
+
+  .p-7, .p-6 { padding: 0.95rem; }
+  .p-5 { padding: 0.85rem; }
+  .p-4 { padding: 0.75rem; }
+  .px-7, .px-6, .px-5 { padding-left: 0.85rem; padding-right: 0.85rem; }
+  .py-6, .py-5 { padding-top: 0.85rem; padding-bottom: 0.85rem; }
+  .gap-6, .gap-5 { gap: 0.75rem; }
+  .gap-4 { gap: 0.625rem; }
+  .mt-8, .mt-7, .mt-6 { margin-top: 0.875rem; }
+  .mt-5 { margin-top: 0.75rem; }
+  .mt-4 { margin-top: 0.625rem; }
+  .mb-5 { margin-bottom: 0.75rem; }
+  .rounded-2xl { border-radius: 14px; }
+}

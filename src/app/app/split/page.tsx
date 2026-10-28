@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { useMarkets } from "@/components/useMarkets";
 import { useVault, posOf } from "@/components/useVault";
 import { ActionButton } from "@/components/app/ActionButton";
-import { AmountField, GasNote, PageHead, Row, Seg, StickyAction, TestNote, TickerChips, TxModal } from "@/components/app/ui";
+import { AmountField, GasNote, PageHead, Row, Seg, TestNote, TickerChips, TxModal } from "@/components/app/ui";
 import { Rosette } from "@/components/Guilloche";
 import { units, pct } from "@/lib/format";
 import { X_DECIMALS, fromRaw, shareValue, toRaw } from "@/lib/vault/sdk";
@@ -63,75 +63,72 @@ function SplitInner() {
   const cta = n <= 0 ? "Enter an amount" : v.owner && n > max + 1e-9 ? (mode === "split" && xBal === 0 ? `Get test ${x} from the faucet` : "Not enough balance") : mode === "split" ? `Split ${units(n, 2)} ${x}` : `Recombine into ${x}`;
   const btn = (cls = "") => <ActionButton className={cls} label={cta} connectLabel="Connect a devnet wallet to split" disabled={bad} onClick={go} />;
   return (
-    <div className="pb-40 md:pb-0">
-      <PageHead kicker="Split" title="Tear off" accent="the coupon." sub="Deposit a test xStock into the vault program. Get a share token that keeps the base value and a dividend token that collects every multiplier bump for 12 months." />
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:mt-8 lg:grid-cols-[1.05fr_1fr] lg:gap-5">
-        <div className="card min-w-0 p-5 sm:p-7">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="pb-10 md:pb-0">
+      <PageHead kicker="Split" title="Tear off" accent="the coupon." sub="Deposit an xStock into the vault to mint principal share (p) and 12-month dividend coupon (d) tokens." />
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-6 lg:grid-cols-[1.05fr_1fr] lg:gap-5">
+        <div className="card min-w-0 p-4 sm:p-7">
+          <div className="flex items-center justify-between gap-2">
             <Seg options={[["split", "Split"], ["redeem", "Recombine"]]} value={mode} onChange={setMode} />
             <span className="micro hidden !text-[9px] text-share sm:inline">Devnet · onchain</span>
           </div>
-          <div className="mt-5"><TickerChips markets={listed} value={x} onChange={setX} /></div>
-          <div className="mt-5">
+          <div className="mt-3.5 sm:mt-5"><TickerChips markets={listed} value={x} onChange={setX} /></div>
+          <div className="mt-3.5 sm:mt-5">
             <AmountField label={mode === "split" ? `Deposit test ${x}` : `Return p${x} + d${x}`} value={amt} onChange={setAmt} max={max} suffix={mode === "split" ? x : `p+d`} />
           </div>
-          <div className="my-4 flex justify-center">
-            <motion.div animate={{ rotate: mode === "split" ? 0 : 180 }} className="flex h-10 w-10 items-center justify-center rounded-full border border-line-2 bg-surface-2 text-lime">↓</motion.div>
+          <div className="my-2.5 flex justify-center sm:my-4">
+            <motion.div animate={{ rotate: mode === "split" ? 0 : 180 }} className="flex h-8 w-8 items-center justify-center rounded-full border border-line-2 bg-surface-2 text-xs text-lime sm:h-10 sm:w-10 sm:text-base">↓</motion.div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {mode === "split" ? (
               <>
-                <div className="min-w-0 rounded-2xl border border-line-2 bg-surface-2 p-4"><div className="micro !text-[9px] text-share">Share token</div><div className="num mt-2 truncate text-2xl">{units(minted, 4)}</div><div className="num mt-1 text-sm text-dim">p{x}</div></div>
-                <div className="min-w-0 rounded-2xl border border-lime/35 bg-lime/[0.06] p-4"><div className="micro !text-[9px] text-lime">Dividend token</div><div className="num mt-2 truncate text-2xl text-lime">{units(minted, 4)}</div><div className="num mt-1 text-sm text-dim">d{x}</div></div>
+                <div className="min-w-0 rounded-2xl border border-line-2 bg-surface-2 p-3 sm:p-4"><div className="micro !text-[9px] text-share">Share token</div><div className="num mt-1 truncate text-xl sm:mt-2 sm:text-2xl">{units(minted, 4)}</div><div className="num mt-0.5 text-xs text-dim sm:text-sm">p{x}</div></div>
+                <div className="min-w-0 rounded-2xl border border-lime/35 bg-lime/[0.06] p-3 sm:p-4"><div className="micro !text-[9px] text-lime">Dividend token</div><div className="num mt-1 truncate text-xl text-lime sm:mt-2 sm:text-2xl">{units(minted, 4)}</div><div className="num mt-0.5 text-xs text-dim sm:text-sm">d{x}</div></div>
               </>
             ) : (
-              <div className="col-span-2 rounded-2xl border border-line-2 bg-surface-2 p-4"><div className="micro !text-[9px] text-dim">You receive</div><div className="num mt-2 text-2xl">{units(back, 6)} {x}</div></div>
+              <div className="col-span-2 rounded-2xl border border-line-2 bg-surface-2 p-3 sm:p-4"><div className="micro !text-[9px] text-dim">You receive</div><div className="num mt-1 text-xl sm:mt-2 sm:text-2xl">{units(back, 6)} {x}</div></div>
             )}
           </div>
-          <div className="mt-5 divide-y divide-line border-t border-line">
+          <div className="mt-3.5 divide-y divide-line border-t border-line sm:mt-5">
             <Row k="Test mint multiplier (mirrors mainnet)" v={mult?.toFixed(9) ?? <Sk />} />
             <Row k="Vault base multiplier" v={mBase?.toFixed(9) ?? <Sk />} />
             <Row k="Projected 12m dividend units" v={m ? `${units(n * m.trailingYield, 6)} ${x}` : <Sk />} accent />
           </div>
-          <div className="mt-6 hidden md:block">{btn()}</div>
-          <div className="mt-4 space-y-3"><GasNote sol={v.sol} /><TestNote /></div>
+          <div className="mt-4 sm:mt-6">{btn()}</div>
+          <div className="mt-3 space-y-2.5 sm:mt-4 sm:space-y-3"><GasNote sol={v.sol} /><TestNote /></div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-4 lg:gap-5">
-          <div className="card relative min-w-0 overflow-hidden p-5 sm:p-7">
+          <div className="card relative min-w-0 overflow-hidden p-4 sm:p-7">
             <Rosette size={420} spin className="pointer-events-none absolute -right-28 -top-28 text-lime" opacity={0.07} />
             <div className="flex items-center justify-between gap-3">
               <div className="micro !text-[9px] text-dim">Your {x} on devnet</div>
-              <Link href="/app/faucet" className="-my-3 inline-flex h-11 items-center text-xs text-lime hover:underline">Faucet →</Link>
+              <Link href="/app/faucet" className="-my-2 inline-flex h-9 items-center text-xs text-lime hover:underline">Faucet →</Link>
             </div>
-            <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="mt-3.5 grid grid-cols-3 gap-2 sm:mt-5 sm:gap-3">
               {[[x, pos.x, "text-ink"], [`p${x}`, pos.p, "text-share"], [`d${x}`, pos.d, "text-lime"]].map(([k, val, c]) => (
                 <div key={k as string} className="min-w-0 rounded-2xl border border-line bg-bg/60 p-3 sm:p-4">
                   <div className="num truncate text-xs text-dim">{k as string}</div>
-                  <motion.div key={String(val)} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={`num mt-2 truncate text-xl ${c}`}>{v.owner ? units(fromRaw(val as bigint, X_DECIMALS), 2) : <Sk />}</motion.div>
+                  <motion.div key={String(val)} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={`num mt-1.5 truncate text-lg sm:mt-2 sm:text-xl ${c}`}>{v.owner ? units(fromRaw(val as bigint, X_DECIMALS), 2) : "0.00"}</motion.div>
                 </div>
               ))}
             </div>
-            <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-lime/25 bg-lime/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-3.5 flex flex-col gap-2.5 rounded-2xl border border-lime/25 bg-lime/[0.05] p-3.5 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
               <div className="min-w-0">
                 <div className="micro !text-[9px] text-lime">Claimable coupon income</div>
-                <div className="num mt-1.5 text-xl text-ink">{v.owner ? `${units(claimable, 8)} ${x}` : <Sk />}</div>
-                <div className="mt-1 text-xs text-dim">{pos.snap ? `Since multiplier ${pos.snap.toFixed(9)}` : "Snapshot starts at your first split"}</div>
+                <div className="num mt-1 text-lg text-ink sm:text-xl">{v.owner ? `${units(claimable, 8)} ${x}` : `0.0000 ${x}`}</div>
+                <div className="mt-0.5 text-xs text-dim">{pos.snap ? `Since multiplier ${pos.snap.toFixed(9)}` : "Snapshot starts at your first split"}</div>
               </div>
-              <button onClick={claim} disabled={!v.owner || pos.claimable === 0n || v.tx.state === "signing" || v.tx.state === "confirming"} className="btn btn-line h-11 shrink-0 px-5 text-sm">Claim</button>
+              <button onClick={claim} disabled={!v.owner || pos.claimable === 0n || v.tx.state === "signing" || v.tx.state === "confirming"} className="btn btn-line h-10 shrink-0 px-5 text-xs sm:h-11 sm:text-sm">Claim</button>
             </div>
           </div>
-          <div className="card min-w-0 p-5 sm:p-7">
+          <div className="card min-w-0 p-4 sm:p-7">
             <div className="micro !text-[9px] text-dim">How d{x} gets paid</div>
-            <div className="display mt-3 text-xl sm:text-2xl">Extra units = base units × (new − old multiplier)</div>
-            <p className="mt-3 text-sm leading-relaxed text-dim">When Backed applies a dividend on mainnet, the {x} multiplier steps up. The vault program reads the test mint&apos;s multiplier onchain and releases the added units to d{x} holders. {m && m.bumps.length > 0 && <>The last real {x} bump took the multiplier from <span className="num text-ink">{m.bumps[m.bumps.length - 1].prev.toFixed(6)}</span> to <span className="num text-ink">{m.bumps[m.bumps.length - 1].next.toFixed(6)}</span>.</>}</p>
-            <div className="mt-5 flex items-center justify-between rounded-xl border border-line bg-bg/60 px-4 py-3 text-sm"><span className="text-dim">Trailing 12m, mainnet</span><span className="num text-lime">{pct(m?.trailingYield, 3)}</span></div>
+            <div className="display mt-2 text-lg sm:mt-3 sm:text-2xl">Extra units = base units × (new − old multiplier)</div>
+            <p className="mt-2 text-xs leading-relaxed text-dim sm:mt-3 sm:text-sm">When Backed applies a dividend on mainnet, the {x} multiplier steps up. The vault program reads the test mint&apos;s multiplier onchain and releases the added units to d{x} holders. {m && m.bumps.length > 0 && <>The last real {x} bump took the multiplier from <span className="num text-ink">{m.bumps[m.bumps.length - 1].prev.toFixed(6)}</span> to <span className="num text-ink">{m.bumps[m.bumps.length - 1].next.toFixed(6)}</span>.</>}</p>
+            <div className="mt-3.5 flex items-center justify-between rounded-xl border border-line bg-bg/60 px-3.5 py-2.5 text-xs sm:mt-5 sm:px-4 sm:py-3 sm:text-sm"><span className="text-dim">Trailing 12m, mainnet</span><span className="num text-lime">{pct(m?.trailingYield, 3)}</span></div>
           </div>
         </div>
       </div>
-      <StickyAction label={mode === "split" ? "You get" : "You receive"} value={mode === "split" ? `${units(minted, 2)} p + d` : `${units(back, 2)} ${x}`} accent>
-        {btn()}
-      </StickyAction>
       <TxModal tx={v.tx} onClose={v.closeTx} />
     </div>
   );

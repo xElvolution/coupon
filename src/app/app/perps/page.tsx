@@ -21,7 +21,7 @@ import {
   type UserPerpPosition,
 } from "@/lib/perps-data";
 import { TOKEN_LOGOS } from "@/lib/token-logos";
-import { usd, units, short } from "@/lib/format";
+import { usd, units } from "@/lib/format";
 import { explorerTx } from "@/lib/vault/deployment";
 
 const TIMEFRAMES: PerpTimeframe[] = ["1m", "5m", "15m", "1h", "4h", "1D", "1W"];
@@ -44,10 +44,11 @@ export default function PerpsPage() {
   const [selectedTicker, setSelectedTicker] = useState<string>("NVDAx-PERP");
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
 
-  // Top-right Bybit 2-Icon View Mode: "chart" (Chart/Company/Financials) vs "trade" (Side-by-Side Order Form + Orderbook)
   const [viewMode, setViewMode] = useState<"chart" | "trade">("chart");
   const [mainTab, setMainTab] = useState<"chart" | "company" | "financials">("chart");
   const [tf, setTf] = useState<PerpTimeframe>("1D");
+  const [tfMenuOpen, setTfMenuOpen] = useState<boolean>(false);
+  const [showMa, setShowMa] = useState<boolean>(true);
   const [bookTab, setBookTab] = useState<"book" | "trades">("book");
 
   // Order Ticket State
@@ -164,12 +165,10 @@ export default function PerpsPage() {
   const maxAskTotal = Math.max(...market.asks.map((a) => a.totalUsd), 1);
   const maxBidTotal = Math.max(...market.bids.map((b) => b.totalUsd), 1);
 
-  // Reusable Side-by-Side Bybit Trade Execution + Live Orderbook (Screenshot 4)
   const renderBybitTradeExecution = (inModal = false) => (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.22fr_1fr] sm:gap-4">
-      {/* LEFT COLUMN: Bybit Order Entry Form */}
+      {/* LEFT COLUMN: Order Entry Form */}
       <div className="space-y-2.5">
-        {/* Buy / Sell Segmented Pill */}
         <div className="grid grid-cols-2 rounded-full bg-bg p-0.5 border border-line-2">
           <button
             type="button"
@@ -195,7 +194,6 @@ export default function PerpsPage() {
           </button>
         </div>
 
-        {/* Available USDC + Leverage Pill Row */}
         <div className="flex items-center justify-between text-[11px]">
           <span className="text-dim">Available</span>
           <div className="flex items-center gap-1.5">
@@ -210,7 +208,6 @@ export default function PerpsPage() {
           </div>
         </div>
 
-        {/* Order Type (Limit / Market) + Leverage Dropdown Row */}
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <div className="flex h-9 items-center justify-between rounded-lg border border-line-2 bg-[#161922] px-2.5">
             <select
@@ -240,7 +237,6 @@ export default function PerpsPage() {
           </div>
         </div>
 
-        {/* Bybit Integrated Price Input Box: [ Price 217.59   — | + ] (Screenshot 4) */}
         {orderType === "Limit" ? (
           <div className="flex h-10 items-center justify-between rounded-lg border border-line-2 bg-[#161922] px-2.5 focus-within:border-lime/60">
             <div className="min-w-0 flex-1">
@@ -281,7 +277,6 @@ export default function PerpsPage() {
           </div>
         )}
 
-        {/* Collateral / Order Size Input Box */}
         <div className="flex h-10 items-center justify-between rounded-lg border border-line-2 bg-[#161922] px-2.5 focus-within:border-lime/60">
           <div className="min-w-0 flex-1">
             <div className="text-[9px] text-dim leading-none">Margin (USDC)</div>
@@ -300,7 +295,6 @@ export default function PerpsPage() {
           </span>
         </div>
 
-        {/* Bybit 5-Node Percentage Slider (0% — 25% — 50% — 75% — 100%) */}
         <div className="px-1 pt-1">
           <div className="relative flex items-center justify-between">
             <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-line-2" />
@@ -327,7 +321,6 @@ export default function PerpsPage() {
           </div>
         </div>
 
-        {/* Compact Confirmation Summary Box */}
         <div className="space-y-1 rounded-lg border border-line bg-bg/50 px-2.5 py-2 text-[11px]">
           <div className="flex justify-between">
             <span className="text-dim">Notional Size</span>
@@ -345,7 +338,6 @@ export default function PerpsPage() {
           </div>
         </div>
 
-        {/* Optional TP/SL Accordion */}
         <div>
           <button
             type="button"
@@ -379,7 +371,6 @@ export default function PerpsPage() {
           )}
         </div>
 
-        {/* Primary Action CTA (Wallet Gate when disconnected) */}
         <button
           type="button"
           onClick={handleExecuteOrder}
@@ -406,7 +397,7 @@ export default function PerpsPage() {
         )}
       </div>
 
-      {/* RIGHT COLUMN: Live Click-to-Fill Orderbook (Bybit Screenshot 4) */}
+      {/* RIGHT COLUMN: Live Click-to-Fill Orderbook */}
       <div className="flex flex-col justify-between rounded-xl border border-line bg-bg/40 p-2.5">
         <div>
           <div className="flex items-center justify-between text-[10px]">
@@ -421,7 +412,6 @@ export default function PerpsPage() {
             <span className="text-right">Shares ({market.symbol.replace(/x$/, "")})</span>
           </div>
 
-          {/* Asks (Red) */}
           <div className="mt-1 space-y-0.5">
             {[...market.asks].reverse().slice(0, 5).map((row, idx) => {
               const wPct = Math.min(100, Math.round((row.totalUsd / maxAskTotal) * 100));
@@ -447,7 +437,6 @@ export default function PerpsPage() {
           </div>
         </div>
 
-        {/* Mid / Mark Price Readout */}
         <div className="my-1.5 border-y border-line/70 py-1.5">
           <div className="flex items-baseline gap-1.5">
             <span
@@ -469,7 +458,6 @@ export default function PerpsPage() {
           <div className="num text-[10px] text-dim">≈ {market.indexPrice.toFixed(2)} USD</div>
         </div>
 
-        {/* Bids (Green) */}
         <div className="space-y-0.5">
           {market.bids.slice(0, 5).map((row, idx) => {
             const wPct = Math.min(100, Math.round((row.totalUsd / maxBidTotal) * 100));
@@ -499,98 +487,81 @@ export default function PerpsPage() {
 
   return (
     <div className="space-y-3 pb-24 sm:space-y-4 lg:pb-8">
-      {/* BYBIT TOP CATEGORY NAV STRIP (Stocks | Perpetual | Options | Predictions) */}
-      <div className="flex items-center justify-between border-b border-line pb-2">
-        <div className="flex items-center gap-4 text-xs font-semibold sm:text-sm">
-          <span className="text-ink">Stocks Perp</span>
-          <Link href="/app/split" className="text-dim hover:text-ink">
-            Dividend Strip
-          </Link>
-          <Link href="/app/predictions" className="text-dim hover:text-ink">
-            Predictions
-          </Link>
-          <Link href="/app/trade" className="hidden text-dim hover:text-ink sm:inline">
-            Spot AMM
-          </Link>
-        </div>
-        <span className="num text-[10px] text-lime">24/7 Onchain Equities</span>
-      </div>
-
-      {/* BYBIT INSTRUMENT HEADER BAR (Logo + NVDA ▾ + Mkt Open + Top-Right [🕯️ Chart | 🧾 Trade] Toggle) */}
-      <div className="flex items-center justify-between gap-2">
+      {/* HYPERLIQUID / BYBIT INSTRUMENT SELECTOR BAR (Unmistakable prominent dropdown button + view switcher) */}
+      <div className="flex items-center justify-between gap-2 rounded-2xl border border-line-2 bg-surface px-3 py-2 sm:px-4 sm:py-2.5">
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="group flex min-w-0 items-center gap-2.5 text-left"
+          className="group flex min-w-0 items-center gap-2.5 rounded-xl border border-line-2 bg-bg/70 px-2.5 py-1.5 text-left transition-colors hover:border-lime/50 sm:px-3"
         >
           {TOKEN_LOGOS[market.symbol] && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={TOKEN_LOGOS[market.symbol]}
               alt={market.symbol}
-              className="h-8 w-8 shrink-0 rounded-full border border-line-2 sm:h-9 sm:w-9"
+              className="h-7 w-7 shrink-0 rounded-full border border-line-2 sm:h-8 sm:w-8"
             />
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="num text-base font-extrabold tracking-tight text-ink sm:text-lg">
-                {market.symbol.replace(/x$/, "")}
+              <span className="num text-sm font-extrabold tracking-tight text-ink sm:text-base">
+                {market.symbol.replace(/x$/, "")}-PERP
               </span>
-              <span className="text-xs text-dim group-hover:text-ink">▾</span>
-              <span className="rounded bg-lime/15 px-1.5 py-0.5 text-[9px] font-bold text-lime">
+              <span className="rounded bg-lime/15 px-1.5 py-0.5 text-[10px] font-bold text-lime">
                 {market.maxLeverage}x
               </span>
+              <span className="ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded-md border border-line-2 bg-surface-2 text-[11px] font-bold text-ink group-hover:border-lime group-hover:text-lime">
+                ▾
+              </span>
             </div>
-            <div className="mt-0.5 flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 rounded-full border border-line-2 bg-surface px-2 py-0.5 text-[9px] font-medium text-ink">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#16C784]" /> Mkt Open ›
+            <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-dim">
+              <span className="inline-flex items-center gap-1 text-[#16C784]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#16C784]" /> Mkt Open
               </span>
-              <span className="max-w-[115px] truncate text-[10px] text-dim sm:max-w-[200px]">
-                {market.companyFull} ›
-              </span>
+              <span>·</span>
+              <span className="truncate max-w-[115px] sm:max-w-[200px]">{market.companyFull}</span>
             </div>
           </div>
         </button>
 
-        {/* Top-Right 2-Icon View Toggle Pill (Bybit Screenshots 1 & 4) */}
-        <div className="flex shrink-0 items-center rounded-full border border-line-2 bg-surface p-0.5">
+        {/* Top-Right View Toggle Pill (Chart vs Trade) */}
+        <div className="flex shrink-0 items-center rounded-xl border border-line-2 bg-bg p-0.5">
           <button
             type="button"
             onClick={() => setViewMode("chart")}
-            title="Chart, Company & Financials View"
-            className={`flex h-7 w-9 items-center justify-center rounded-full transition-colors ${
+            className={`flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold transition-colors ${
               viewMode === "chart" ? "bg-surface-2 text-ink" : "text-dim hover:text-ink"
             }`}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M7 4v16M5 8h4v8H5zM17 4v16M15 7h4v9h-4z" />
             </svg>
+            <span>Chart</span>
           </button>
           <button
             type="button"
             onClick={() => setViewMode("trade")}
-            title="Trade & Orderbook View"
-            className={`flex h-7 w-9 items-center justify-center rounded-full transition-colors ${
+            className={`flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold transition-colors ${
               viewMode === "trade" ? "bg-surface-2 text-ink" : "text-dim hover:text-ink"
             }`}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="4" y="4" width="16" height="16" rx="2" />
               <path d="M8 9h8M8 13h5M8 17h4" />
             </svg>
+            <span>Trade</span>
           </button>
         </div>
       </div>
 
-      {/* MAIN TERMINAL GRID (Desktop shows Chart + Right Trade Dock; Mobile switches cleanly via viewMode & Popup) */}
+      {/* MAIN TERMINAL GRID */}
       <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[1fr_380px]">
-        {/* LEFT / PRIMARY COLUMN */}
         <div className="min-w-0 space-y-3.5">
           {viewMode === "trade" ? (
             <div className="card p-3 sm:p-4">{renderBybitTradeExecution(false)}</div>
           ) : (
             <div className="card overflow-hidden">
-              {/* Sub-Navigation Tabs: Chart | Company | Financials (Bybit Screenshots 1, 2, 3) */}
+              {/* Sub-Navigation Tabs: Chart | Company | Financials */}
               <div className="flex items-center justify-between border-b border-line px-3.5">
                 <div className="flex items-center gap-5">
                   {(
@@ -615,22 +586,22 @@ export default function PerpsPage() {
                     </button>
                   ))}
                 </div>
-                <span className="num text-[10px] text-dim">{market.exchange} · Token-2022</span>
+                <span className="num text-[10px] text-dim">{market.exchange} · Pyth</span>
               </div>
 
               {mainTab === "chart" && (
                 <div>
-                  {/* Price & Compact Telemetry Header (Bybit Screenshot 1) */}
-                  <div className="border-b border-line p-3.5 sm:p-4">
+                  {/* Price & Compact Telemetry Header */}
+                  <div className="border-b border-line p-3 sm:p-4">
                     <div className="grid grid-cols-[1.2fr_1fr] items-start gap-3">
                       <div>
-                        <div className="text-[10px] text-dim">Trading · Live Pyth Oracle</div>
+                        <div className="text-[10px] text-dim">Mark Price · 24/7 Perp</div>
                         <div
                           className={`num mt-0.5 text-2xl font-extrabold tracking-tight sm:text-3xl ${
                             market.change24hPct >= 0 ? "text-[#16C784]" : "text-[#EA3943]"
                           }`}
                         >
-                          {market.markPrice.toFixed(2)}
+                          ${market.markPrice.toFixed(2)}
                         </div>
                         <div
                           className={`num mt-0.5 text-[11px] font-medium ${
@@ -645,72 +616,107 @@ export default function PerpsPage() {
 
                       <div className="space-y-1 text-[11px]">
                         <div className="flex justify-between">
-                          <span className="text-dim">High</span>
+                          <span className="text-dim">24h High</span>
                           <span className="num text-[#16C784]">{market.high24h.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-dim">Low</span>
+                          <span className="text-dim">24h Low</span>
                           <span className="num text-[#EA3943]">{market.low24h.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-dim">Volume</span>
-                          <span className="num text-ink">{market.volume24hShares}</span>
+                          <span className="text-dim">24h Vol</span>
+                          <span className="num text-ink">{usd(market.volume24hUsd)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-dim">Div Carry</span>
+                          <span className="num font-semibold text-[#16C784]">+{market.dividendYieldApy.toFixed(2)}%</span>
                         </div>
                       </div>
                     </div>
-
-                    {/* 3×2 Telemetry Sub-Grid (Open, Turnover, Turnover Rate, Prev. Close, P/E TTM, Mkt Cap / Div APY) */}
-                    <div className="mt-3 grid grid-cols-3 gap-x-3 gap-y-2 border-t border-line/60 pt-2.5 text-[11px]">
-                      <div>
-                        <div className="text-[10px] text-dim">Open</div>
-                        <div className="num font-semibold text-ink">{market.open24h.toFixed(2)}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-dim">Turnover</div>
-                        <div className="num font-semibold text-ink">{usd(market.volume24hUsd)}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[10px] text-dim">Div Carry APY</div>
-                        <div className="num font-semibold text-[#16C784]">+{market.dividendYieldApy.toFixed(2)}%</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-dim">Prev. Close</div>
-                        <div className="num font-semibold text-ink">{market.prevClose.toFixed(2)}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-dim">P/E TTM</div>
-                        <div className="num font-semibold text-ink">{market.peTtm}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[10px] text-dim">Mkt Cap</div>
-                        <div className="num font-semibold text-ink">{market.marketCap}</div>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Timeframe Strip (1m | 5m | 15m | 1h | 4h | 1D | 1W) */}
-                  <div className="flex items-center justify-between border-b border-line/60 px-3 py-1.5">
-                    <div className="flex items-center gap-1">
-                      {TIMEFRAMES.map((k) => (
+                  {/* Clean Timeframe Dropdown + Indicators Toolbar (Replaces crowded 7-button row!) */}
+                  <div className="relative flex items-center justify-between border-b border-line/60 bg-bg/40 px-3 py-1.5">
+                    <div className="flex items-center gap-2">
+                      {/* Timeframe Dropdown Button */}
+                      <div className="relative">
                         <button
-                          key={k}
                           type="button"
-                          onClick={() => setTf(k)}
-                          className={`num rounded px-2 py-0.5 text-[11px] font-semibold transition-colors ${
-                            tf === k ? "bg-surface-2 text-ink" : "text-dim hover:text-ink"
-                          }`}
+                          onClick={() => setTfMenuOpen((o) => !o)}
+                          className="flex h-7 items-center gap-1.5 rounded-lg border border-line-2 bg-surface px-2.5 text-xs font-semibold text-ink hover:border-lime/50"
                         >
-                          {k}
+                          <span className="text-[10px] uppercase text-dim">Interval</span>
+                          <span className="num text-lime">{tf}</span>
+                          <span className="text-[10px] text-dim">▾</span>
                         </button>
-                      ))}
+
+                        {tfMenuOpen && (
+                          <div className="absolute left-0 top-8 z-30 flex w-44 flex-wrap gap-1 rounded-xl border border-line-2 bg-[#11131A] p-2 shadow-2xl">
+                            {TIMEFRAMES.map((k) => (
+                              <button
+                                key={k}
+                                type="button"
+                                onClick={() => {
+                                  setTf(k);
+                                  setTfMenuOpen(false);
+                                }}
+                                className={`num flex-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                                  tf === k
+                                    ? "bg-lime text-bg"
+                                    : "bg-surface text-dim hover:text-ink"
+                                }`}
+                              >
+                                {k}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quick 3 primary intervals for 1-tap switching */}
+                      <div className="flex items-center gap-1">
+                        {(["15m", "1h", "1D"] as PerpTimeframe[]).map((k) => (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => {
+                              setTf(k);
+                              setTfMenuOpen(false);
+                            }}
+                            className={`num h-7 rounded-lg px-2 text-[11px] font-semibold transition-colors ${
+                              tf === k
+                                ? "bg-surface-2 text-ink border border-line-2"
+                                : "text-dim hover:text-ink"
+                            }`}
+                          >
+                            {k}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <span className="num text-[10px] text-dim">Mult {market.tokenMultiplier}</span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowMa((m) => !m)}
+                        className={`h-7 rounded-lg border px-2 text-[10px] font-semibold transition-colors ${
+                          showMa
+                            ? "border-lime/40 bg-lime/10 text-lime"
+                            : "border-line-2 bg-surface text-dim"
+                        }`}
+                      >
+                        MA Lines
+                      </button>
+                      <span className="num hidden text-[10px] text-dim sm:inline">
+                        Mult {market.tokenMultiplier}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Candlestick + MA7/MA14/MA28 + Volume Chart */}
-                  <BybitCandlestickChart candles={candles} symbol={market.symbol} />
+                  {/* Interactive Touch-Scrubbable Candlestick Chart */}
+                  <BybitCandlestickChart candles={candles} symbol={market.symbol} showMa={showMa} />
 
-                  {/* Interactive Order Book & Recent Trades Below Chart (Tapping any price opens Limit Order Popup!) */}
+                  {/* Interactive Order Book & Recent Trades Below Chart */}
                   <div className="border-t border-line p-3.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 text-xs font-semibold">
@@ -729,12 +735,11 @@ export default function PerpsPage() {
                           Recent Trades
                         </button>
                       </div>
-                      <span className="text-[10px] text-lime">Tap any price to open Limit Order</span>
+                      <span className="text-[10px] text-lime">Tap row → Limit Order</span>
                     </div>
 
                     {bookTab === "book" ? (
                       <div className="mt-2.5 grid grid-cols-2 gap-3 text-[11px]">
-                        {/* Bids */}
                         <div>
                           <div className="mb-1 flex justify-between text-[9px] text-dim">
                             <span>Bid (Shares)</span>
@@ -761,7 +766,6 @@ export default function PerpsPage() {
                           </div>
                         </div>
 
-                        {/* Asks */}
                         <div>
                           <div className="mb-1 flex justify-between text-[9px] text-dim">
                             <span>Price</span>
@@ -814,7 +818,7 @@ export default function PerpsPage() {
             </div>
           )}
 
-          {/* STRUCTURED BYBIT POSITIONS / ORDERS / ASSETS PANEL (Clean 2-tier cards, never crushed tables) */}
+          {/* POSITIONS / ORDERS / ASSETS PANEL */}
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-line px-3.5 py-2.5 sm:px-5">
               <div className="flex items-center gap-5 text-xs font-semibold sm:text-sm">
@@ -866,7 +870,6 @@ export default function PerpsPage() {
                           key={pos.id}
                           className="rounded-xl border border-line-2 bg-bg/50 p-3.5 transition-colors hover:border-line"
                         >
-                          {/* Row 1: Header (Symbol + LONG/SHORT Lev Badge) & Unrealized PnL */}
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2">
                               {TOKEN_LOGOS[pos.symbol] && (
@@ -910,7 +913,6 @@ export default function PerpsPage() {
                             </div>
                           </div>
 
-                          {/* Row 2: 3×2 Tabular Metrics Grid */}
                           <div className="mt-2.5 grid grid-cols-3 gap-2 rounded-lg border border-line/70 bg-surface/60 px-3 py-2 text-[11px]">
                             <div>
                               <div className="micro !text-[8px] text-faint">Position Size</div>
@@ -940,7 +942,6 @@ export default function PerpsPage() {
                             </div>
                           </div>
 
-                          {/* Row 3: Carry Info & Close Button */}
                           <div className="mt-2.5 flex items-center justify-between gap-2">
                             <span className="num text-[10px] text-dim">
                               Div Carry:{" "}
@@ -990,13 +991,13 @@ export default function PerpsPage() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN ON DESKTOP: Always-Visible Bybit Trade + Orderbook Panel */}
+        {/* RIGHT COLUMN ON DESKTOP: Always-Visible Trade + Orderbook Panel */}
         <div className="hidden lg:sticky lg:top-20 lg:block">
           <div className="card p-4">{renderBybitTradeExecution(false)}</div>
         </div>
       </div>
 
-      {/* MOBILE FLOATING BYBIT-STYLE DUAL ACTION BAR (Perp Icon + Buy / Long + Sell / Short — Screenshot 1) */}
+      {/* MOBILE FLOATING DUAL ACTION BAR */}
       {viewMode === "chart" && (
         <Portal>
           <div className="fixed inset-x-0 bottom-[calc(max(10px,env(safe-area-inset-bottom))+60px)] z-30 px-3 lg:hidden">
@@ -1030,7 +1031,7 @@ export default function PerpsPage() {
         </Portal>
       )}
 
-      {/* POP-UP BOTTOM SHEET ORDER DRAWER WHEN TAPPING BUY, SELL, OR ANY ORDERBOOK ROW */}
+      {/* POP-UP BOTTOM SHEET ORDER DRAWER */}
       <Portal>
         <AnimatePresence>
           {orderPopupOpen && (
@@ -1079,7 +1080,7 @@ export default function PerpsPage() {
         </AnimatePresence>
       </Portal>
 
-      {/* BYBIT MARKET SWITCHER DRAWER (Screenshot 5) */}
+      {/* MARKET SWITCHER DRAWER */}
       <Portal>
         <BybitMarketDrawer
           open={drawerOpen}
