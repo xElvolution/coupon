@@ -12,15 +12,15 @@ function Portal({ children }: { children: React.ReactNode }) {
 import type { MarketSnapshot } from "@/lib/types";
 import type { TxState } from "../useVault";
 import { explorerTx } from "@/lib/vault/deployment";
-import { units, usd, short } from "@/lib/format";
+import { units, short } from "@/lib/format";
 
 export function PageHead({ kicker, title, accent, sub, right }: { kicker: string; title: string; accent?: string; sub?: string; right?: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-6">
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
       <div>
-        <div className="micro text-lime">{kicker}</div>
-        <h1 className="display mt-2 text-[clamp(2rem,5vw,3.6rem)] leading-[0.98] sm:mt-3">{title} {accent && <em className="text-lime">{accent}</em>}</h1>
-        {sub && <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-dim sm:mt-3 sm:text-base">{sub}</p>}
+        <div className="micro !text-[9px] text-lime sm:!text-[10px]">{kicker}</div>
+        <h1 className="display mt-1 text-[22px] leading-[1.06] sm:mt-3 sm:text-[clamp(2.2rem,4.5vw,3.5rem)] sm:leading-[0.98]">{title} {accent && <em className="text-lime">{accent}</em>}</h1>
+        {sub && <p className="mt-1.5 max-w-xl text-xs leading-relaxed text-dim sm:mt-3 sm:text-base">{sub}</p>}
       </div>
       {right}
     </div>
@@ -76,7 +76,7 @@ export function Seg<T extends string>({ options, value, onChange }: { options: [
   return (
     <div className="flex w-full rounded-full border border-line-2 bg-bg p-1 sm:inline-flex sm:w-auto">
       {options.map(([k, l]) => (
-        <button key={k} onClick={() => onChange(k)} aria-pressed={value === k} className={`relative h-11 flex-1 whitespace-nowrap rounded-full px-4 text-sm transition-colors sm:h-9 sm:flex-none ${value === k ? "text-bg" : "text-dim hover:text-ink"}`}>
+        <button key={k} onClick={() => onChange(k)} aria-pressed={value === k} className={`relative h-10 flex-1 whitespace-nowrap rounded-full px-3.5 text-xs transition-colors sm:h-9 sm:flex-none sm:px-4 sm:text-sm ${value === k ? "text-bg" : "text-dim hover:text-ink"}`}>
           {value === k && <motion.span layoutId={`seg-${options.map((o) => o[0]).join("")}`} className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
           <span className="relative">{l}</span>
         </button>
@@ -105,7 +105,7 @@ export function AmountField({ label, value, onChange, max, suffix }: { label: st
 
 export function Row({ k, v, accent }: { k: string; v: React.ReactNode; accent?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5 text-sm">
+    <div className="flex items-center justify-between gap-4 py-2 text-xs sm:py-2.5 sm:text-sm">
       <span className="min-w-0 text-dim">{k}</span>
       <span className={`num shrink-0 whitespace-nowrap text-right ${accent ? "text-lime" : "text-ink"}`}>{v}</span>
     </div>
