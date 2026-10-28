@@ -127,6 +127,36 @@ export default function Portfolio() {
           <div className="mt-5"><TestNote /></div>
         </div>
       </div>
+      {data?.verifiedOrders && data.verifiedOrders.length > 0 && (
+        <div className="card mt-4 overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-6 py-4">
+            <div>
+              <div className="display text-2xl">Verified Onchain Perps &amp; Outcome Ledger</div>
+              <div className="text-xs text-dim">Confirmed Solana devnet executions across Dividend Yield Perps and pm-AMM Outcome Markets</div>
+            </div>
+            <div className="flex gap-2">
+              <Link href="/app/perps" className="btn btn-line h-8 px-3 text-xs">Perps Desk</Link>
+              <Link href="/app/outcomes" className="btn btn-line h-8 px-3 text-xs">Outcomes Desk</Link>
+            </div>
+          </div>
+          <div className="divide-y divide-line">
+            {data.verifiedOrders.map((o) => {
+              const mk = get(o.xSymbol);
+              return (
+                <a key={o.sig} href={explorerTx(o.sig)} target="_blank" rel="noreferrer" className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 text-sm hover:bg-surface-2/50">
+                  <div className="flex items-center gap-3">
+                    {mk && <TokenDot m={mk} size={22} badge="d" />}
+                    <span className="micro rounded-full border border-lime/40 px-2 py-0.5 !text-[9px] text-lime">{o.kind === "perp" ? `PERP ${o.side} ${o.leverage}x` : `OUTCOME ${o.side}`}</span>
+                    <span className="num text-ink">{o.id}</span>
+                    <span className="num text-xs text-dim">{usd(o.usdcAmount, 2)} USDC</span>
+                  </div>
+                  <span className="num text-xs text-lime">{short(o.sig, 6, 6)} ↗</span>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <TxModal tx={v.tx} onClose={v.closeTx} />
     </div>
   );

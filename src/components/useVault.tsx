@@ -10,7 +10,7 @@ export type { ChainMarket } from "@/lib/vault/chain-markets";
 import { MK, marketKeys, parseMarkets, type ChainMarket } from "@/lib/vault/chain-markets";
 /** owed: income the transfer hook booked when d moved; claimable includes it */
 export type ChainPosition = { x: bigint; p: bigint; d: bigint; lp: bigint; snap: number | null; owed: bigint; claimable: bigint; dAccounts: { key: PublicKey; bal: bigint; claimable: bigint }[] };
-export type TxAction = "faucet" | "split" | "recombine" | "claim" | "sell" | "buy" | "redeem";
+export type TxAction = "faucet" | "split" | "recombine" | "claim" | "sell" | "buy" | "redeem" | "perp" | "outcome";
 export type TxReceipt = { action: TxAction; symbol: string; badge?: "p" | "d"; title: string; lines: [string, string][]; sig: string; at: number };
 export type TxState = { state: "idle" | "signing" | "confirming" | "ok" | "err"; label?: string; error?: string; receipt?: TxReceipt };
 

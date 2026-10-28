@@ -23,6 +23,41 @@ Coupon fair value = xStock price x trailing 12 month multiplier growth. The
 trade price comes from each coupon's onchain constant product pool (30 bps fee),
 seeded at 0.935 x fair.
 
+## Institutional Derivatives Expansion (Pyth Pro + Perps + Outcome Markets)
+
+Beyond spot dividend stripping (`p` Principal + `d` Coupon), COUPON provides three institutional derivatives and analytics desks anchored by 27 live Pyth `PriceUpdateV2` feeds and Solana mainnet Token-2022 `ScaledUiAmountConfig`:
+
+1. **Pyth Pro 27-Feed Telemetry & Implied Yield Strip (`/app/pyth`, `/api/pyth`)**:
+   - Reads 3 simultaneous Pyth `PriceUpdateV2` accounts per market on Solana mainnet (`pythWSnswVUd12oZpeFP8e9CVaEqJg25g1Vtc2biRsT`) or Pyth Pro Hermes:
+     - **50ms US Equity Spot** (`Equity.US.SPY/USD`, `MSFT/USD`, `QQQ/USD`, `AAPL/USD`, `META/USD`, `GOOGL/USD`, `NVDA/USD`, `TSLA/USD`, `AMZN/USD`)
+     - **200ms Tokenized xStock Spot** (`Crypto.SPYX/USD`, `MSFTX/USD`, `QQQX/USD`, `AAPLX/USD`, `METAX/USD`, `GOOGLX/USD`, `NVDAX/USD`, `TSLAX/USD`, `AMZNX/USD`)
+     - **200ms Crypto Redemption Rate (`.RR`)** (`Crypto.SPYX/SPY.RR`, `MSFTX/MSFT.RR`, `QQQX/QQQ.RR`, `AAPLX/AAPL.RR`, `METAX/META.RR`, `GOOGLX/GOOGL.RR`, `NVDAX/NVDA.RR`, `TSLAX/TSLA.RR`, `AMZNX/AMZN.RR`), cross-checked in real time against each mint's Token-2022 `ScaledUiAmountConfig` multiplier.
+   - Computes peg basis (`xStock` vs `Equity` in bps), Spot-vs-EMA spread, and the 3M / 6M / 12M / 24M forward implied dividend yield strip against the 1Y US Treasury benchmark.
+
+2. **Dividend Yield Perpetuals Desk (`/app/perps`)**:
+   - Lets traders go **Long or Short implied annualized dividend growth** (`dSPYx-PERP`, `dMSFTx-PERP`, `dQQQx-PERP`, `dAAPLx-PERP`, `dMETAx-PERP`, `dNVDAx-PERP`) up to 20x leverage without holding underlying stock price delta.
+   - **Pyth Confidence & Peg Leverage Guard (`perp_max_leverage` in `program/crates/common/src/lib.rs`)**: Dynamically bounds maximum leverage (`20x`, `12x`, `8x`, or `5x`) based on combined Pyth confidence intervals (`conf / price` in bps), `xStock / Equity` peg basis, and `.RR` vs Token-2022 multiplier parity.
+   - **Onchain Execution**: Routes leveraged exposure through `coupon_market` (`EPCXp2gEtwa6c28x19XgM2oV9k3T5pLsUiAzEaJUc3WN`) `d/USDC` (Long Yield) or `p/USDC` (Short Yield) pools paired with structured `SPL Memo` (`MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr`) commitments (`COUPON_PERP:v1:<symbol>:<LONG|SHORT>:lev=<L>x:margin=<raw>`).
+
+3. **Corporate Action & Peg Outcome Markets (`/app/outcomes`)**:
+   - Binary YES/NO prediction contracts priced via a constant-product complete-set **pm-AMM** (`pm_amm_buy_shares` in `program/crates/common/src/lib.rs`) that resolve deterministically from Solana mainnet Token-2022 `ScaledUiAmountConfig` multiplier steps and Pyth `.RR` / Equity feeds.
+   - **Onchain Execution**: Routes YES/NO stakes through `coupon_market` pools + structured `SPL Memo` commitments (`COUPON_OUTCOME:v1:<id>:<YES|NO>:stake=<raw>`).
+
+### Verified Devnet Perp & Outcome Executions (`src/lib/vault/deployment.devnet.verify-perps-outcomes.json`)
+
+| Contract | Side / Leverage | Solana Devnet Transaction |
+|---|---|---|
+| `dSPYx-PERP` | `LONG 12x` | `2nhH3Wz7DTqz4aMJiCj33dQt1oYdTemsBdWYfs9SyjAJJGX5ptVhPUQyCjAxrET9YTpp1K1bVfN3Tc7DAKnyb7B2` |
+| `dMSFTx-PERP` | `SHORT 8x` | `65EP2wfaHc5pKv1k5FJdXRaxJ3X38gthrAqpkKE4Kt7gWNxGN2onek6D6niLx7588LFxgMWh4gjRDsRGKtAQscVX` |
+| `dQQQx-PERP` | `LONG 10x` | `2GkEQuCEiJSRe82z9P3n24kbRC8ah1fup9iHN7jZRF7EztYMwnQPVxviQLu29oABrqzArWRjY2oKEYPZkq8MxrVS` |
+| `dAAPLx-PERP` | `LONG 12x` | `3aR44jJmKvFFNWtAfh3VuFVQgC7gd71pjZhopgBsS3VETZEqWPgXfPnNkUt4z5JDkSk6EJcrVis6k7fHLbG7D9rr` |
+| `spyx-q4-mult` | `YES` | `49rSbVS6v61Cq16cbGqE4TFErYGVHvitpHNAV3iPH8ogiLdKcWN68mBmTpHqQMdq25zeRSkoKG9HztWv7v6YhfTv` |
+| `aapl-rr-peg` | `YES` | `77odAxszC6XKme2xP74zNeudVpH2P1JzRnrSw1pw8YU28ddJzBeA7TzQppycJimHiPWSHZpoybrjskffBxdp1CL` |
+| `msft-div-step` | `YES` | `5MGZPriZXLpaTSMDtRL5Hcmcgih17Z2BK2uuJHLkTViEc17V4ojBM7p96KHpCFebYkCABEzdZmhBwpojF8MRoToC` |
+| `nvda-basis-guard` | `YES` | `2mspC8E5Nsd7QixCmFcJhAMPpTqCnjHEG2zfwTSxc91EhiNEu6FdrxZgHgp37twvx3CaVvAXUseZFWYsUEBu94qv` |
+| `qqq-12m-mult` | `NO` | `48ZgcWwzPSosiPLhoGeStjpBJc67STYAVxTtiVoedkVxCeSTGH3GP8JsbMmZvs7SkbEq3v9jtzQVy53xc5VpWWx5` |
+| `meta-yield-curve` | `YES` | `3iZ1XPZNVkeL764otyF1PWVARrBEoyFtxkx7ZYioutFYdt3e55zgdPHPPXXN1beaJGGLgnP3N7toEmwoUAckeFTD` |
+
 ## Architecture
 
 Three native Solana programs (no Anchor) share one `common` crate for program

@@ -2,7 +2,7 @@
 import { test, expect } from "bun:test";
 import fs from "fs";
 import { Keypair, TransactionInstruction } from "@solana/web3.js";
-import { CouponVault, type Deployment } from "../src/lib/vault/sdk";
+import { CouponVault, MEMO_PROGRAM_ID, perpMaxLeverage, perpFunding8hBps, pmAmmBuyShares, type Deployment } from "../src/lib/vault/sdk";
 
 const dep: Deployment = JSON.parse(fs.readFileSync("src/lib/vault/deployment.devnet.json", "utf8"));
 const v = new CouponVault(dep);
@@ -67,4 +67,26 @@ test("hook accounts follow the ExtraAccountMetaList layout written by the vault"
   expect(h.map((x) => x.pubkey.toBase58())).toEqual(want.map((x) => x.toBase58()));
   expect(h.map((x) => x.isWritable)).toEqual([false, true, false, true, true, true, false, false]);
   expect(h[6].pubkey.toBase58()).toBe("11111111111111111111111111111111");
+});
+
+test("perpOrder and outcomeOrder encode coupon_market swapBuy + SPL Memo", () => {
+  const longIxs = v.perpOrder(user, m, "long", 50_000_000n, 10);
+  expect(longIxs.at(-2)!.programId.toBase58()).toBe(idl.coupon_market.metadata.address);
+  expect(longIxs.at(-1)!.programId.toBase58()).toBe(MEMO_PROGRAM_ID.toBase58());
+  expect(longIxs.at(-1)!.data.toString("utf8")).toContain("COUPON_PERP:v1:SPYx:LONG:lev=10x");
+
+  const outIxs = v.outcomeOrder(user, m, "spyx-q4-mult", "yes", 25_000_000n);
+  expect(outIxs.at(-2)!.programId.toBase58()).toBe(idl.coupon_market.metadata.address);
+  expect(outIxs.at(-1)!.data.toString("utf8")).toContain("COUPON_OUTCOME:v1:spyx-q4-mult:YES");
+});
+
+test("Pyth confidence leverage guard and pm-AMM quote math match Rust common crate", () => {
+  expect(perpMaxLeverage(4, 8, 2)).toBe(20);
+  expect(perpMaxLeverage(15, 20, 5)).toBe(12);
+  expect(perpMaxLeverage(30, 40, 10)).toBe(8);
+  expect(perpMaxLeverage(80, 90, 25)).toBe(5);
+  expect(perpFunding8hBps(1.25, 1.10)).toBe(5);
+  const q = pmAmmBuyShares(100, 50_000, 50_000);
+  expect(q.sharesOut).toBeGreaterThan(199);
+  expect(q.sharesOut).toBeLessThan(200);
 });
