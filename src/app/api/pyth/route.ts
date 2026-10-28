@@ -1,34 +1,25 @@
 import { NextResponse } from "next/server";
 import { getSnapshot } from "@/lib/cache";
+import { pythAccount } from "@/lib/server-data";
+import { MARKETS } from "@/lib/markets";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  try {
-    const data = await getSnapshot();
-    return NextResponse.json(
-      {
-        ok: data.ok,
-        at: data.at,
-        slot: data.slot,
-        pythSource: data.pythSource,
-        pythSession: data.pythSession,
-        feedCount: data.markets.length * 3,
-        markets: data.markets.map((m) => ({
-          x: m.x,
-          under: m.under,
-          name: m.name,
-          mint: m.mint,
-          multiplier: m.multiplier,
-          trailingYield: m.trailingYield,
-          pythTelemetry: m.pythTelemetry,
-          yieldCurve: m.yieldCurve,
-          perp: m.perp,
-        })),
-      },
-      { headers: { "Cache-Control": "no-store" } }
-    );
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
-  }
+  const d = await getSnapshot();
+  return NextResponse.json(
+    {
+      source: d.pythSource,
+      detail: d.sources.pyth,
+      at: d.at,
+      prices: d.markets.map((m) => {
+        const def = MARKETS.find((k) => k.x === m.x)!;
+        return {
+          symbol: m.under, equity: m.equity, equityPublish: m.equityPublish, equityFeedId: def.equityFeed, equityAccount: pythAccount(def.equityFeed),
+          xStock: m.x, xPrice: m.xPrice, xPublish: m.xPublish, xFeedId: def.xFeed, xAccount: pythAccount(def.xFeed),
+        };
+      }),
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

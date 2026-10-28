@@ -117,33 +117,6 @@ pub fn isqrt(n: u128) -> u128 {
     }
     x
 }
-/// Pyth confidence and xStock peg basis guard: caps maximum leverage (up to 20x) when
-/// confidence intervals widen or xStock trades away from the underlying equity parity.
-pub fn perp_max_leverage(conf_bps: u64, peg_drift_bps: u64, rr_delta_bps: u64) -> u8 {
-    let risk_score = conf_bps.saturating_mul(2).saturating_add(peg_drift_bps).saturating_add(rr_delta_bps);
-    if risk_score <= 25 {
-        20
-    } else if risk_score <= 60 {
-        12
-    } else if risk_score <= 120 {
-        8
-    } else {
-        5
-    }
-}
-/// 8-hour funding rate (in hundredths of a bps, e.g. 125 = 1.25 bps) from mark vs index dividend yield (in bps).
-pub fn perp_funding_8h_bps(mark_yield_bps: i64, index_yield_bps: i64) -> i64 {
-    let diff = mark_yield_bps.saturating_sub(index_yield_bps);
-    (diff.saturating_mul(100) / 3).clamp(-5000, 5000)
-}
-/// Prediction market constant-product AMM (pm-AMM): mints complete set of usdc_in and swaps the opposite leg into the pool.
-pub fn pm_amm_buy_shares(usdc_in: u64, r_target: u64, r_opposite: u64) -> Result<u64, ProgramError> {
-    if usdc_in == 0 {
-        return Err(E::ZeroAmount.into());
-    }
-    let swapped = swap_out(usdc_in, r_opposite, r_target)?;
-    usdc_in.checked_add(swapped).ok_or(E::Math.into())
-}
 
 // ---------- Token-2022 account parsing ----------
 /// Token account: mint at 0, owner at 32, amount at 64. Returns the amount.
@@ -393,23 +366,5 @@ mod tests {
     #[test]
     fn overflow_is_an_error() {
         assert!(share_value(u64::MAX, u64::MAX, 1).is_err());
-    }
-    #[test]
-    fn pyth_leverage_guard_scales_down_on_drift() {
-        assert_eq!(perp_max_leverage(4, 8, 2), 20);
-        assert_eq!(perp_max_leverage(15, 20, 5), 12);
-        assert_eq!(perp_max_leverage(30, 40, 10), 8);
-        assert_eq!(perp_max_leverage(80, 90, 25), 5);
-    }
-    #[test]
-    fn perp_funding_tracks_yield_basis() {
-        assert_eq!(perp_funding_8h_bps(125, 110), 500);
-        assert_eq!(perp_funding_8h_bps(95, 110), -500);
-        assert_eq!(perp_funding_8h_bps(110, 110), 0);
-    }
-    #[test]
-    fn pm_amm_complete_set_mint_and_swap() {
-        let shares = pm_amm_buy_shares(100_000_000, 50_000_000_000, 50_000_000_000).unwrap();
-        assert!(shares > 199_000_000 && shares < 200_000_000, "{shares}");
     }
 }

@@ -16,7 +16,6 @@ import {
 } from "@solana/spl-token";
 
 export const TOKEN_2022 = TOKEN_2022_PROGRAM_ID;
-export const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 export const X_DECIMALS = 8;
 export const USDC_DECIMALS = 6;
 export const FEE_BPS = 30;
@@ -274,25 +273,6 @@ export class CouponVault {
   removeLiquidity(user: PublicKey, m: MarketDeployment, lp: bigint, minD: bigint, minUsdc: bigint, side: Side = "d") {
     return this.tradeIx(user, m, MarketIx.RemoveLiquidity, [lp, minD, minUsdc], side);
   }
-  memo(user: PublicKey, text: string) {
-    return new TransactionInstruction({
-      programId: MEMO_PROGRAM_ID,
-      keys: [S(user)],
-      data: Buffer.from(text, "utf8"),
-    });
-  }
-  /** Executes an on-chain Dividend Perp order via the underlying coupon (long yield) or principal (short yield) pool + structured on-chain Memo. */
-  perpOrder(user: PublicKey, m: MarketDeployment, direction: "long" | "short", marginUsdcRaw: bigint, leverage: number, minOutRaw = 0n) {
-    const side: Side = direction === "long" ? "d" : "p";
-    const memoText = `COUPON_PERP:v1:${m.symbol}:${direction.toUpperCase()}:lev=${leverage}x:margin=${marginUsdcRaw.toString()}`;
-    return [...this.swapBuy(user, m, marginUsdcRaw, minOutRaw, side), this.memo(user, memoText)];
-  }
-  /** Executes an on-chain Outcome Market order via the coupon (YES) or principal (NO) pool + structured on-chain Memo. */
-  outcomeOrder(user: PublicKey, m: MarketDeployment, marketId: string, outcomeSide: "yes" | "no", stakeUsdcRaw: bigint, minOutRaw = 0n) {
-    const side: Side = outcomeSide === "yes" ? "d" : "p";
-    const memoText = `COUPON_OUTCOME:v1:${marketId}:${outcomeSide.toUpperCase()}:stake=${stakeUsdcRaw.toString()}`;
-    return [...this.swapBuy(user, m, stakeUsdcRaw, minOutRaw, side), this.memo(user, memoText)];
-  }
 
   // ---------- admin (config, markets, pools, bump replay, seed mint) ----------
   initVaultConfig(admin: PublicKey) {
@@ -411,34 +391,3 @@ export function shareValue(amount: bigint, mBase: number, m: number): bigint {
 }
 export const toRaw = (ui: number, dec: number) => BigInt(Math.round(ui * 10 ** dec));
 export const fromRaw = (raw: bigint, dec: number) => Number(raw) / 10 ** dec;
-
-/** Mirror of coupon_common::perp_max_leverage: caps leverage based on Pyth confidence, peg drift, and RR delta (in bps). */
-export function perpMaxLeverage(confBps: number, pegDriftBps: number, rrDeltaBps: number): number {
-  const score = Math.max(0, Math.round(confBps * 2 + Math.abs(pegDriftBps) + Math.abs(rrDeltaBps)));
-  if (score <= 25) return 20;
-  if (score <= 60) return 12;
-  if (score <= 120) return 8;
-  return 5;
-}
-
-/** Mirror of coupon_common::perp_funding_8h_bps: 8h funding rate in bps between mark and index dividend yield. */
-export function perpFunding8hBps(markYieldPct: number, indexYieldPct: number): number {
-  const diffBps = (markYieldPct - indexYieldPct) * 100;
-  return Math.max(-50, Math.min(50, Number((diffBps / 3).toFixed(2))));
-}
-
-/** Mirror of coupon_common::pm_amm_buy_shares: constant-product complete-set mint + swap for binary outcome markets. */
-export function pmAmmBuyShares(usdcIn: number, rTarget: number, rOpposite: number): { sharesOut: number; avgPrice: number; postProb: number } {
-  if (usdcIn <= 0 || rTarget <= 0 || rOpposite <= 0) {
-    const p = rTarget + rOpposite > 0 ? rOpposite / (rTarget + rOpposite) : 0.5;
-    return { sharesOut: 0, avgPrice: p, postProb: p };
-  }
-  const inFee = usdcIn * (10_000 - FEE_BPS);
-  const swapped = (inFee * rTarget) / (rOpposite * 10_000 + inFee);
-  const sharesOut = usdcIn + swapped;
-  const newTarget = Math.max(1, rTarget - swapped);
-  const newOpposite = rOpposite + usdcIn;
-  const postProb = newOpposite / (newTarget + newOpposite);
-  return { sharesOut, avgPrice: usdcIn / sharesOut, postProb };
-}
-

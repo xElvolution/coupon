@@ -81,65 +81,6 @@ export default function Home() {
       <div id="trade"><HoldSplitSell /></div>
       <div id="price"><Calculator /></div>
       <ChainProof />
-
-      {/* Institutional Expansion: Perps, Outcomes, Pyth Pro */}
-      <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
-        <Reveal>
-          <div className="flex flex-col justify-between gap-6 border-b border-line pb-8 md:flex-row md:items-end">
-            <div>
-              <div className="micro text-lime">Institutional Fixed-Income &amp; Derivatives Layer</div>
-              <h2 className="display mt-3 max-w-2xl text-[clamp(2.2rem,4.5vw,3.8rem)] leading-[0.98]">
-                Three desks, anchored by <em className="text-lime">27 live Pyth feeds.</em>
-              </h2>
-            </div>
-            <p className="max-w-md text-sm text-dim">
-              Beyond spot dividend stripping, COUPON powers leveraged Dividend Yield Perpetuals and binary Corporate Action Outcome Markets settled deterministically by Solana Token-2022 state and Pyth Pro telemetry.
-            </p>
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <Link href="/app/perps" className="card group flex flex-col justify-between p-6 transition-colors hover:border-lime/50">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="micro !text-[9px] text-lime">01 · Dividend Yield Perps</span>
-                  <span className="num text-xs text-lime">Up to 20x</span>
-                </div>
-                <div className="display mt-3 text-3xl text-ink group-hover:text-lime">dSPYx-PERP</div>
-                <p className="mt-2 text-sm text-dim">
-                  Trade annualized Token-2022 dividend growth long or short without underlying equity price exposure. Leverage is dynamically bounded by Pyth confidence and peg drift.
-                </p>
-              </div>
-              <div className="num mt-6 border-t border-line pt-4 text-xs text-lime">Open Perps Desk →</div>
-            </Link>
-            <Link href="/app/outcomes" className="card group flex flex-col justify-between p-6 transition-colors hover:border-lime/50">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="micro !text-[9px] text-lime">02 · Outcome Markets</span>
-                  <span className="num text-xs text-lime">pm-AMM</span>
-                </div>
-                <div className="display mt-3 text-3xl text-ink group-hover:text-lime">Dividend &amp; Peg Events</div>
-                <p className="mt-2 text-sm text-dim">
-                  Binary YES/NO prediction contracts on quarterly Token-2022 multiplier steps and Pyth .RR redemption parity, resolved without human committees.
-                </p>
-              </div>
-              <div className="num mt-6 border-t border-line pt-4 text-xs text-lime">Open Outcomes Desk →</div>
-            </Link>
-            <Link href="/app/pyth" className="card group flex flex-col justify-between p-6 transition-colors hover:border-lime/50">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="micro !text-[9px] text-lime">03 · Pyth Pro Intelligence</span>
-                  <span className="num text-xs text-lime">27 Feeds</span>
-                </div>
-                <div className="display mt-3 text-3xl text-ink group-hover:text-lime">3M-24M Yield Strip</div>
-                <p className="mt-2 text-sm text-dim">
-                  Every asset combines 50ms US Equity spot, 200ms xStock spot, and 200ms Pyth .RR redemption rates with forward implied dividend curves.
-                </p>
-              </div>
-              <div className="num mt-6 border-t border-line pt-4 text-xs text-lime">Inspect Pyth Telemetry →</div>
-            </Link>
-          </div>
-        </Reveal>
-      </section>
-
       <WhoBuys />
 
       {/* trust row */}
